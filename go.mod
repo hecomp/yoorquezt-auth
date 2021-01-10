@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/go-kit/kit v0.10.0
+	github.com/golang/protobuf v1.4.3
 	github.com/lightstep/lightstep-tracer-go v0.23.0
 	github.com/oklog/oklog v0.3.2
 	github.com/opentracing/opentracing-go v1.2.0
@@ -13,5 +14,6 @@ require (
 	github.com/sony/gobreaker v0.4.1
 	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324
 	google.golang.org/grpc v1.34.0
+	google.golang.org/protobuf v1.25.0
 	sourcegraph.com/sourcegraph/appdash v0.0.0-20190731080439-ebfcffb1b5c0
 )
