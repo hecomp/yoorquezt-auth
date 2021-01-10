@@ -11,4 +11,4 @@
 # See also
 #  https://github.com/grpc/grpc-go/tree/master/examples
 
-protoc yoorqueztsvc.proto --go_out=plugins=grpc:.
+protoc yoorqueztauthsvc.proto --go_out=plugins=grpc:.
