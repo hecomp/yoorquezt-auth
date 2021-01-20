@@ -5,20 +5,20 @@ package pb;
 // The Add service definition.
 service Add {
   // Sums two integers.
-  rpc Sum (SumRequest) returns (SumReply) {}
+  rpc Signup (SignupRequest) returns (SignupReply) {}
 
   // Concatenates two strings
   rpc Concat (ConcatRequest) returns (ConcatReply) {}
 }
 
 // The sum request contains two parameters.
-message SumRequest {
+message SignupRequest {
   int64 a = 1;
   int64 b = 2;
 }
 
 // The sum response contains the result of the calculation.
-message SumReply {
+message SignupReply {
   int64 v = 1;
   string err = 2;
 }

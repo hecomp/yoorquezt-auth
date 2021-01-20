@@ -30,7 +30,7 @@ const (
 const _ = proto.ProtoPackageIsVersion4
 
 // The sum request contains two parameters.
-type SumRequest struct {
+type SignupRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
@@ -39,8 +39,8 @@ type SumRequest struct {
 	B int64 `protobuf:"varint,2,opt,name=b,proto3" json:"b,omitempty"`
 }
 
-func (x *SumRequest) Reset() {
-	*x = SumRequest{}
+func (x *SignupRequest) Reset() {
+	*x = SignupRequest{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_yoorqueztauthsvc_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -48,13 +48,13 @@ func (x *SumRequest) Reset() {
 	}
 }
 
-func (x *SumRequest) String() string {
+func (x *SignupRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*SumRequest) ProtoMessage() {}
+func (*SignupRequest) ProtoMessage() {}
 
-func (x *SumRequest) ProtoReflect() protoreflect.Message {
+func (x *SignupRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_yoorqueztauthsvc_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -66,19 +66,19 @@ func (x *SumRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SumRequest.ProtoReflect.Descriptor instead.
-func (*SumRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use SignupRequest.ProtoReflect.Descriptor instead.
+func (*SignupRequest) Descriptor() ([]byte, []int) {
 	return file_yoorqueztauthsvc_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *SumRequest) GetA() int64 {
+func (x *SignupRequest) GetA() int64 {
 	if x != nil {
 		return x.A
 	}
 	return 0
 }
 
-func (x *SumRequest) GetB() int64 {
+func (x *SignupRequest) GetB() int64 {
 	if x != nil {
 		return x.B
 	}
@@ -86,7 +86,7 @@ func (x *SumRequest) GetB() int64 {
 }
 
 // The sum response contains the result of the calculation.
-type SumReply struct {
+type SignupReply struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
@@ -95,8 +95,8 @@ type SumReply struct {
 	Err string `protobuf:"bytes,2,opt,name=err,proto3" json:"err,omitempty"`
 }
 
-func (x *SumReply) Reset() {
-	*x = SumReply{}
+func (x *SignupReply) Reset() {
+	*x = SignupReply{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_yoorqueztauthsvc_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -104,13 +104,13 @@ func (x *SumReply) Reset() {
 	}
 }
 
-func (x *SumReply) String() string {
+func (x *SignupReply) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*SumReply) ProtoMessage() {}
+func (*SignupReply) ProtoMessage() {}
 
-func (x *SumReply) ProtoReflect() protoreflect.Message {
+func (x *SignupReply) ProtoReflect() protoreflect.Message {
 	mi := &file_yoorqueztauthsvc_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -122,19 +122,19 @@ func (x *SumReply) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SumReply.ProtoReflect.Descriptor instead.
-func (*SumReply) Descriptor() ([]byte, []int) {
+// Deprecated: Use SignupReply.ProtoReflect.Descriptor instead.
+func (*SignupReply) Descriptor() ([]byte, []int) {
 	return file_yoorqueztauthsvc_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *SumReply) GetV() int64 {
+func (x *SignupReply) GetV() int64 {
 	if x != nil {
 		return x.V
 	}
 	return 0
 }
 
-func (x *SumReply) GetErr() string {
+func (x *SignupReply) GetErr() string {
 	if x != nil {
 		return x.Err
 	}
@@ -257,25 +257,26 @@ var File_yoorqueztauthsvc_proto protoreflect.FileDescriptor
 
 var file_yoorqueztauthsvc_proto_rawDesc = []byte{
 	0x0a, 0x16, 0x79, 0x6f, 0x6f, 0x72, 0x71, 0x75, 0x65, 0x7a, 0x74, 0x61, 0x75, 0x74, 0x68, 0x73,
-	0x76, 0x63, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x02, 0x70, 0x62, 0x22, 0x28, 0x0a, 0x0a,
-	0x53, 0x75, 0x6d, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x0c, 0x0a, 0x01, 0x61, 0x18,
-	0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x01, 0x61, 0x12, 0x0c, 0x0a, 0x01, 0x62, 0x18, 0x02, 0x20,
-	0x01, 0x28, 0x03, 0x52, 0x01, 0x62, 0x22, 0x2a, 0x0a, 0x08, 0x53, 0x75, 0x6d, 0x52, 0x65, 0x70,
-	0x6c, 0x79, 0x12, 0x0c, 0x0a, 0x01, 0x76, 0x18, 0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x01, 0x76,
-	0x12, 0x10, 0x0a, 0x03, 0x65, 0x72, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x65,
-	0x72, 0x72, 0x22, 0x2b, 0x0a, 0x0d, 0x43, 0x6f, 0x6e, 0x63, 0x61, 0x74, 0x52, 0x65, 0x71, 0x75,
-	0x65, 0x73, 0x74, 0x12, 0x0c, 0x0a, 0x01, 0x61, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x01,
-	0x61, 0x12, 0x0c, 0x0a, 0x01, 0x62, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x01, 0x62, 0x22,
-	0x2d, 0x0a, 0x0b, 0x43, 0x6f, 0x6e, 0x63, 0x61, 0x74, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x12, 0x0c,
-	0x0a, 0x01, 0x76, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x01, 0x76, 0x12, 0x10, 0x0a, 0x03,
-	0x65, 0x72, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x65, 0x72, 0x72, 0x32, 0x5c,
-	0x0a, 0x03, 0x41, 0x64, 0x64, 0x12, 0x25, 0x0a, 0x03, 0x53, 0x75, 0x6d, 0x12, 0x0e, 0x2e, 0x70,
-	0x62, 0x2e, 0x53, 0x75, 0x6d, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x0c, 0x2e, 0x70,
-	0x62, 0x2e, 0x53, 0x75, 0x6d, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x22, 0x00, 0x12, 0x2e, 0x0a, 0x06,
-	0x43, 0x6f, 0x6e, 0x63, 0x61, 0x74, 0x12, 0x11, 0x2e, 0x70, 0x62, 0x2e, 0x43, 0x6f, 0x6e, 0x63,
-	0x61, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x0f, 0x2e, 0x70, 0x62, 0x2e, 0x43,
-	0x6f, 0x6e, 0x63, 0x61, 0x74, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x22, 0x00, 0x62, 0x06, 0x70, 0x72,
-	0x6f, 0x74, 0x6f, 0x33,
+	0x76, 0x63, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x02, 0x70, 0x62, 0x22, 0x2b, 0x0a, 0x0d,
+	0x53, 0x69, 0x67, 0x6e, 0x75, 0x70, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x0c, 0x0a,
+	0x01, 0x61, 0x18, 0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x01, 0x61, 0x12, 0x0c, 0x0a, 0x01, 0x62,
+	0x18, 0x02, 0x20, 0x01, 0x28, 0x03, 0x52, 0x01, 0x62, 0x22, 0x2d, 0x0a, 0x0b, 0x53, 0x69, 0x67,
+	0x6e, 0x75, 0x70, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x12, 0x0c, 0x0a, 0x01, 0x76, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x03, 0x52, 0x01, 0x76, 0x12, 0x10, 0x0a, 0x03, 0x65, 0x72, 0x72, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x03, 0x65, 0x72, 0x72, 0x22, 0x2b, 0x0a, 0x0d, 0x43, 0x6f, 0x6e, 0x63,
+	0x61, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x0c, 0x0a, 0x01, 0x61, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x01, 0x61, 0x12, 0x0c, 0x0a, 0x01, 0x62, 0x18, 0x02, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x01, 0x62, 0x22, 0x2d, 0x0a, 0x0b, 0x43, 0x6f, 0x6e, 0x63, 0x61, 0x74, 0x52,
+	0x65, 0x70, 0x6c, 0x79, 0x12, 0x0c, 0x0a, 0x01, 0x76, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x01, 0x76, 0x12, 0x10, 0x0a, 0x03, 0x65, 0x72, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x03, 0x65, 0x72, 0x72, 0x32, 0x65, 0x0a, 0x03, 0x41, 0x64, 0x64, 0x12, 0x2e, 0x0a, 0x06, 0x53,
+	0x69, 0x67, 0x6e, 0x75, 0x70, 0x12, 0x11, 0x2e, 0x70, 0x62, 0x2e, 0x53, 0x69, 0x67, 0x6e, 0x75,
+	0x70, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x0f, 0x2e, 0x70, 0x62, 0x2e, 0x53, 0x69,
+	0x67, 0x6e, 0x75, 0x70, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x22, 0x00, 0x12, 0x2e, 0x0a, 0x06, 0x43,
+	0x6f, 0x6e, 0x63, 0x61, 0x74, 0x12, 0x11, 0x2e, 0x70, 0x62, 0x2e, 0x43, 0x6f, 0x6e, 0x63, 0x61,
+	0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x0f, 0x2e, 0x70, 0x62, 0x2e, 0x43, 0x6f,
+	0x6e, 0x63, 0x61, 0x74, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x22, 0x00, 0x62, 0x06, 0x70, 0x72, 0x6f,
+	0x74, 0x6f, 0x33,
 }
 
 var (
@@ -292,15 +293,15 @@ func file_yoorqueztauthsvc_proto_rawDescGZIP() []byte {
 
 var file_yoorqueztauthsvc_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_yoorqueztauthsvc_proto_goTypes = []interface{}{
-	(*SumRequest)(nil),    // 0: pb.SumRequest
-	(*SumReply)(nil),      // 1: pb.SumReply
+	(*SignupRequest)(nil), // 0: pb.SignupRequest
+	(*SignupReply)(nil),   // 1: pb.SignupReply
 	(*ConcatRequest)(nil), // 2: pb.ConcatRequest
 	(*ConcatReply)(nil),   // 3: pb.ConcatReply
 }
 var file_yoorqueztauthsvc_proto_depIdxs = []int32{
-	0, // 0: pb.Add.Sum:input_type -> pb.SumRequest
+	0, // 0: pb.Add.Signup:input_type -> pb.SignupRequest
 	2, // 1: pb.Add.Concat:input_type -> pb.ConcatRequest
-	1, // 2: pb.Add.Sum:output_type -> pb.SumReply
+	1, // 2: pb.Add.Signup:output_type -> pb.SignupReply
 	3, // 3: pb.Add.Concat:output_type -> pb.ConcatReply
 	2, // [2:4] is the sub-list for method output_type
 	0, // [0:2] is the sub-list for method input_type
@@ -316,7 +317,7 @@ func file_yoorqueztauthsvc_proto_init() {
 	}
 	if !protoimpl.UnsafeEnabled {
 		file_yoorqueztauthsvc_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SumRequest); i {
+			switch v := v.(*SignupRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -328,7 +329,7 @@ func file_yoorqueztauthsvc_proto_init() {
 			}
 		}
 		file_yoorqueztauthsvc_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SumReply); i {
+			switch v := v.(*SignupReply); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -397,7 +398,7 @@ const _ = grpc.SupportPackageIsVersion6
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type AddClient interface {
 	// Sums two integers.
-	Sum(ctx context.Context, in *SumRequest, opts ...grpc.CallOption) (*SumReply, error)
+	Signup(ctx context.Context, in *SignupRequest, opts ...grpc.CallOption) (*SignupReply, error)
 	// Concatenates two strings
 	Concat(ctx context.Context, in *ConcatRequest, opts ...grpc.CallOption) (*ConcatReply, error)
 }
@@ -410,9 +411,9 @@ func NewAddClient(cc grpc.ClientConnInterface) AddClient {
 	return &addClient{cc}
 }
 
-func (c *addClient) Sum(ctx context.Context, in *SumRequest, opts ...grpc.CallOption) (*SumReply, error) {
-	out := new(SumReply)
-	err := c.cc.Invoke(ctx, "/pb.Add/Sum", in, out, opts...)
+func (c *addClient) Signup(ctx context.Context, in *SignupRequest, opts ...grpc.CallOption) (*SignupReply, error) {
+	out := new(SignupReply)
+	err := c.cc.Invoke(ctx, "/pb.Add/Signup", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -431,7 +432,7 @@ func (c *addClient) Concat(ctx context.Context, in *ConcatRequest, opts ...grpc.
 // AddServer is the server API for Add service.
 type AddServer interface {
 	// Sums two integers.
-	Sum(context.Context, *SumRequest) (*SumReply, error)
+	Signup(context.Context, *SignupRequest) (*SignupReply, error)
 	// Concatenates two strings
 	Concat(context.Context, *ConcatRequest) (*ConcatReply, error)
 }
@@ -440,8 +441,8 @@ type AddServer interface {
 type UnimplementedAddServer struct {
 }
 
-func (*UnimplementedAddServer) Sum(context.Context, *SumRequest) (*SumReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Sum not implemented")
+func (*UnimplementedAddServer) Signup(context.Context, *SignupRequest) (*SignupReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Signup not implemented")
 }
 func (*UnimplementedAddServer) Concat(context.Context, *ConcatRequest) (*ConcatReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Concat not implemented")
@@ -451,20 +452,20 @@ func RegisterAddServer(s *grpc.Server, srv AddServer) {
 	s.RegisterService(&_Add_serviceDesc, srv)
 }
 
-func _Add_Sum_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SumRequest)
+func _Add_Signup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SignupRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AddServer).Sum(ctx, in)
+		return srv.(AddServer).Signup(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/pb.Add/Sum",
+		FullMethod: "/pb.Add/Signup",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AddServer).Sum(ctx, req.(*SumRequest))
+		return srv.(AddServer).Signup(ctx, req.(*SignupRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -492,8 +493,8 @@ var _Add_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*AddServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Sum",
-			Handler:    _Add_Sum_Handler,
+			MethodName: "Signup",
+			Handler:    _Add_Signup_Handler,
 		},
 		{
 			MethodName: "Concat",
