@@ -52,10 +52,10 @@ func NewGRPCServer(endpoints yoorqueztendpoint.Set, otTracer stdopentracing.Trac
 
 	return &grpcServer{
 		sum: grpctransport.NewServer(
-			endpoints.SumEndpoint,
-			decodeGRPCSumRequest,
+			endpoints.SignupEndpoint,
+			decodeGRPCSignupRequest,
 			encodeGRPCSumResponse,
-			append(options, grpctransport.ServerBefore(opentracing.GRPCToContext(otTracer, "Sum", logger)))...,
+			append(options, grpctransport.ServerBefore(opentracing.GRPCToContext(otTracer, "Signup", logger)))...,
 		),
 		concat: grpctransport.NewServer(
 			endpoints.ConcatEndpoint,
@@ -66,12 +66,12 @@ func NewGRPCServer(endpoints yoorqueztendpoint.Set, otTracer stdopentracing.Trac
 	}
 }
 
-func (s *grpcServer) Sum(ctx context.Context, req *pb.SumRequest) (*pb.SumReply, error) {
+func (s *grpcServer) Signup(ctx context.Context, req *pb.SignupRequest) (*pb.SignupReply, error) {
 	_, rep, err := s.sum.ServeGRPC(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	return rep.(*pb.SumReply), nil
+	return rep.(*pb.SignupReply), nil
 }
 
 func (s *grpcServer) Concat(ctx context.Context, req *pb.ConcatRequest) (*pb.ConcatReply, error) {
@@ -117,16 +117,16 @@ func NewGRPCClient(conn *grpc.ClientConn, otTracer stdopentracing.Tracer, zipkin
 		sumEndpoint = grpctransport.NewClient(
 			conn,
 			"pb.Add",
-			"Sum",
-			encodeGRPCSumRequest,
+			"Signup",
+			encodeGRPCSignupRequest,
 			decodeGRPCSumResponse,
-			pb.SumReply{},
+			pb.SignupReply{},
 			append(options, grpctransport.ClientBefore(opentracing.ContextToGRPC(otTracer, logger)))...,
 		).Endpoint()
-		sumEndpoint = opentracing.TraceClient(otTracer, "Sum")(sumEndpoint)
+		sumEndpoint = opentracing.TraceClient(otTracer, "Signup")(sumEndpoint)
 		sumEndpoint = limiter(sumEndpoint)
 		sumEndpoint = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{
-			Name:    "Sum",
+			Name:    "Signup",
 			Timeout: 30 * time.Second,
 		}))(sumEndpoint)
 	}
@@ -156,16 +156,16 @@ func NewGRPCClient(conn *grpc.ClientConn, otTracer stdopentracing.Tracer, zipkin
 	// endpoint.Set implementing the Service methods. That's just a simple bit
 	// of glue code.
 	return yoorqueztendpoint.Set{
-		SumEndpoint:    sumEndpoint,
+		SignupEndpoint: sumEndpoint,
 		ConcatEndpoint: concatEndpoint,
 	}
 }
 
-// decodeGRPCSumRequest is a transport/grpc.DecodeRequestFunc that converts a
+// decodeGRPCSignupRequest is a transport/grpc.DecodeRequestFunc that converts a
 // gRPC sum request to a user-domain sum request. Primarily useful in a server.
-func decodeGRPCSumRequest(_ context.Context, grpcReq interface{}) (interface{}, error) {
-	req := grpcReq.(*pb.SumRequest)
-	return yoorqueztendpoint.SumRequest{A: int(req.A), B: int(req.B)}, nil
+func decodeGRPCSignupRequest(_ context.Context, grpcReq interface{}) (interface{}, error) {
+	req := grpcReq.(*pb.SignupRequest)
+	return yoorqueztendpoint.SignupRequest{A: int(req.A), B: int(req.B)}, nil
 }
 
 // decodeGRPCConcatRequest is a transport/grpc.DecodeRequestFunc that converts a
@@ -179,8 +179,8 @@ func decodeGRPCConcatRequest(_ context.Context, grpcReq interface{}) (interface{
 // decodeGRPCSumResponse is a transport/grpc.DecodeResponseFunc that converts a
 // gRPC sum reply to a user-domain sum response. Primarily useful in a client.
 func decodeGRPCSumResponse(_ context.Context, grpcReply interface{}) (interface{}, error) {
-	reply := grpcReply.(*pb.SumReply)
-	return yoorqueztendpoint.SumResponse{V: int(reply.V), Err: str2err(reply.Err)}, nil
+	reply := grpcReply.(*pb.SignupReply)
+	return yoorqueztendpoint.SignupResponse{V: int(reply.V), Err: str2err(reply.Err)}, nil
 }
 
 // decodeGRPCConcatResponse is a transport/grpc.DecodeResponseFunc that converts
@@ -194,8 +194,8 @@ func decodeGRPCConcatResponse(_ context.Context, grpcReply interface{}) (interfa
 // encodeGRPCSumResponse is a transport/grpc.EncodeResponseFunc that converts a
 // user-domain sum response to a gRPC sum reply. Primarily useful in a server.
 func encodeGRPCSumResponse(_ context.Context, response interface{}) (interface{}, error) {
-	resp := response.(yoorqueztendpoint.SumResponse)
-	return &pb.SumReply{V: int64(resp.V), Err: err2str(resp.Err)}, nil
+	resp := response.(yoorqueztendpoint.SignupResponse)
+	return &pb.SignupReply{V: int64(resp.V), Err: err2str(resp.Err)}, nil
 }
 
 // encodeGRPCConcatResponse is a transport/grpc.EncodeResponseFunc that converts
@@ -206,11 +206,11 @@ func encodeGRPCConcatResponse(_ context.Context, response interface{}) (interfac
 	return &pb.ConcatReply{V: resp.V, Err: err2str(resp.Err)}, nil
 }
 
-// encodeGRPCSumRequest is a transport/grpc.EncodeRequestFunc that converts a
+// encodeGRPCSignupRequest is a transport/grpc.EncodeRequestFunc that converts a
 // user-domain sum request to a gRPC sum request. Primarily useful in a client.
-func encodeGRPCSumRequest(_ context.Context, request interface{}) (interface{}, error) {
-	req := request.(yoorqueztendpoint.SumRequest)
-	return &pb.SumRequest{A: int64(req.A), B: int64(req.B)}, nil
+func encodeGRPCSignupRequest(_ context.Context, request interface{}) (interface{}, error) {
+	req := request.(yoorqueztendpoint.SignupRequest)
+	return &pb.SignupRequest{A: int64(req.A), B: int64(req.B)}, nil
 }
 
 // encodeGRPCConcatRequest is a transport/grpc.EncodeRequestFunc that converts a

@@ -48,11 +48,11 @@ func NewHTTPHandler(endpoints yoorqueztendpoint.Set, otTracer stdopentracing.Tra
 	}
 
 	m := http.NewServeMux()
-	m.Handle("/sum", httptransport.NewServer(
-		endpoints.SumEndpoint,
-		decodeHTTPSumRequest,
+	m.Handle("/signup", httptransport.NewServer(
+		endpoints.SignupEndpoint,
+		decodeHTTPSignupRequest,
 		encodeHTTPGenericResponse,
-		append(options, httptransport.ServerBefore(opentracing.HTTPToContext(otTracer, "Sum", logger)))...,
+		append(options, httptransport.ServerBefore(opentracing.HTTPToContext(otTracer, "Signup", logger)))...,
 	))
 	m.Handle("/concat", httptransport.NewServer(
 		endpoints.ConcatEndpoint,
@@ -99,24 +99,24 @@ func NewHTTPClient(instance string, otTracer stdopentracing.Tracer, zipkinTracer
 	// endpoint.Endpoint) that gets wrapped with various middlewares. If you
 	// made your own client library, you'd do this work there, so your server
 	// could rely on a consistent set of client behavior.
-	var sumEndpoint endpoint.Endpoint
+	var signupEndpoint endpoint.Endpoint
 	{
-		sumEndpoint = httptransport.NewClient(
+		signupEndpoint = httptransport.NewClient(
 			"POST",
-			copyURL(u, "/sum"),
+			copyURL(u, "/signup"),
 			encodeHTTPGenericRequest,
-			decodeHTTPSumResponse,
+			decodeHTTPSignupResponse,
 			append(options, httptransport.ClientBefore(opentracing.ContextToHTTP(otTracer, logger)))...,
 		).Endpoint()
-		sumEndpoint = opentracing.TraceClient(otTracer, "Sum")(sumEndpoint)
+		signupEndpoint = opentracing.TraceClient(otTracer, "Signup")(signupEndpoint)
 		if zipkinTracer != nil {
-			sumEndpoint = zipkin.TraceEndpoint(zipkinTracer, "Sum")(sumEndpoint)
+			signupEndpoint = zipkin.TraceEndpoint(zipkinTracer, "Signup")(signupEndpoint)
 		}
-		sumEndpoint = limiter(sumEndpoint)
-		sumEndpoint = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{
-			Name:    "Sum",
+		signupEndpoint = limiter(signupEndpoint)
+		signupEndpoint = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{
+			Name:    "Signup",
 			Timeout: 30 * time.Second,
-		}))(sumEndpoint)
+		}))(signupEndpoint)
 	}
 
 	// The Concat endpoint is the same thing, with slightly different
@@ -145,7 +145,7 @@ func NewHTTPClient(instance string, otTracer stdopentracing.Tracer, zipkinTracer
 	// endpoint.Set implementing the Service methods. That's just a simple bit
 	// of glue code.
 	return yoorqueztendpoint.Set{
-		SumEndpoint:    sumEndpoint,
+		SignupEndpoint: signupEndpoint,
 		ConcatEndpoint: concatEndpoint,
 	}, nil
 }
@@ -181,11 +181,11 @@ type errorWrapper struct {
 	Error string `json:"error"`
 }
 
-// decodeHTTPSumRequest is a transport/http.DecodeRequestFunc that decodes a
+// decodeHTTPSignupRequest is a transport/http.DecodeRequestFunc that decodes a
 // JSON-encoded sum request from the HTTP request body. Primarily useful in a
 // server.
-func decodeHTTPSumRequest(_ context.Context, r *http.Request) (interface{}, error) {
-	var req yoorqueztendpoint.SumRequest
+func decodeHTTPSignupRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	var req yoorqueztendpoint.SignupRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	return req, err
 }
@@ -199,16 +199,16 @@ func decodeHTTPConcatRequest(_ context.Context, r *http.Request) (interface{}, e
 	return req, err
 }
 
-// decodeHTTPSumResponse is a transport/http.DecodeResponseFunc that decodes a
+// decodeHTTPSignupResponse is a transport/http.DecodeResponseFunc that decodes a
 // JSON-encoded sum response from the HTTP response body. If the response has a
 // non-200 status code, we will interpret that as an error and attempt to decode
 // the specific error message from the response body. Primarily useful in a
 // client.
-func decodeHTTPSumResponse(_ context.Context, r *http.Response) (interface{}, error) {
+func decodeHTTPSignupResponse(_ context.Context, r *http.Response) (interface{}, error) {
 	if r.StatusCode != http.StatusOK {
 		return nil, errors.New(r.Status)
 	}
-	var resp yoorqueztendpoint.SumResponse
+	var resp yoorqueztendpoint.SignupResponse
 	err := json.NewDecoder(r.Body).Decode(&resp)
 	return resp, err
 }

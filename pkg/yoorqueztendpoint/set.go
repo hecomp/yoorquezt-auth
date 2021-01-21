@@ -24,26 +24,26 @@ import (
 // be used as a helper struct, to collect all of the endpoints into a single
 // parameter.
 type Set struct {
-	SumEndpoint    endpoint.Endpoint
+	SignupEndpoint endpoint.Endpoint
 	ConcatEndpoint endpoint.Endpoint
 }
 
 // New returns a Set that wraps the provided server, and wires in all of the
 // expected endpoint middlewares via the various parameters.
 func New(svc yoorqueztservice.Service, logger log.Logger, duration metrics.Histogram, otTracer stdopentracing.Tracer, zipkinTracer *stdzipkin.Tracer) Set {
-	var sumEndpoint endpoint.Endpoint
+	var signupEndpoint endpoint.Endpoint
 	{
-		sumEndpoint = MakeSumEndpoint(svc)
-		// Sum is limited to 1 request per second with burst of 1 request.
+		signupEndpoint = MakeSignupEndpoint(svc)
+		// Signup is limited to 1 request per second with burst of 1 request.
 		// Note, rate is defined as a time interval between requests.
-		sumEndpoint = ratelimit.NewErroringLimiter(rate.NewLimiter(rate.Every(time.Second), 1))(sumEndpoint)
-		sumEndpoint = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{}))(sumEndpoint)
-		sumEndpoint = opentracing.TraceServer(otTracer, "Sum")(sumEndpoint)
+		signupEndpoint = ratelimit.NewErroringLimiter(rate.NewLimiter(rate.Every(time.Second), 1))(signupEndpoint)
+		signupEndpoint = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{}))(signupEndpoint)
+		signupEndpoint = opentracing.TraceServer(otTracer, "Signup")(signupEndpoint)
 		if zipkinTracer != nil {
-			sumEndpoint = zipkin.TraceEndpoint(zipkinTracer, "Sum")(sumEndpoint)
+			signupEndpoint = zipkin.TraceEndpoint(zipkinTracer, "Signup")(signupEndpoint)
 		}
-		sumEndpoint = LoggingMiddleware(log.With(logger, "method", "Sum"))(sumEndpoint)
-		sumEndpoint = InstrumentingMiddleware(duration.With("method", "Sum"))(sumEndpoint)
+		signupEndpoint = LoggingMiddleware(log.With(logger, "method", "Signup"))(signupEndpoint)
+		signupEndpoint = InstrumentingMiddleware(duration.With("method", "Signup"))(signupEndpoint)
 	}
 	var concatEndpoint endpoint.Endpoint
 	{
@@ -60,19 +60,19 @@ func New(svc yoorqueztservice.Service, logger log.Logger, duration metrics.Histo
 		concatEndpoint = InstrumentingMiddleware(duration.With("method", "Concat"))(concatEndpoint)
 	}
 	return Set{
-		SumEndpoint:    sumEndpoint,
+		SignupEndpoint: signupEndpoint,
 		ConcatEndpoint: concatEndpoint,
 	}
 }
 
-// Sum implements the service interface, so Set may be used as a service.
+// Signup implements the service interface, so Set may be used as a service.
 // This is primarily useful in the context of a client library.
-func (s Set) Sum(ctx context.Context, a, b int) (int, error) {
-	resp, err := s.SumEndpoint(ctx, SumRequest{A: a, B: b})
+func (s Set) Signup(ctx context.Context, a, b int) (int, error) {
+	resp, err := s.SignupEndpoint(ctx, SignupRequest{A: a, B: b})
 	if err != nil {
 		return 0, err
 	}
-	response := resp.(SumResponse)
+	response := resp.(SignupResponse)
 	return response.V, response.Err
 }
 
@@ -87,12 +87,12 @@ func (s Set) Concat(ctx context.Context, a, b string) (string, error) {
 	return response.V, response.Err
 }
 
-// MakeSumEndpoint constructs a Sum endpoint wrapping the service.
-func MakeSumEndpoint(s yoorqueztservice.Service) endpoint.Endpoint {
+// MakeSignupEndpoint constructs a Signup endpoint wrapping the service.
+func MakeSignupEndpoint(s yoorqueztservice.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		req := request.(SumRequest)
-		v, err := s.Sum(ctx, req.A, req.B)
-		return SumResponse{V: v, Err: err}, nil
+		req := request.(SignupRequest)
+		v, err := s.Signup(ctx, req.A, req.B)
+		return SignupResponse{V: v, Err: err}, nil
 	}
 }
 
@@ -107,23 +107,23 @@ func MakeConcatEndpoint(s yoorqueztservice.Service) endpoint.Endpoint {
 
 // compile time assertions for our response types implementing endpoint.Failer.
 var (
-	_ endpoint.Failer = SumResponse{}
+	_ endpoint.Failer = SignupResponse{}
 	_ endpoint.Failer = ConcatResponse{}
 )
 
-// SumRequest collects the request parameters for the Sum method.
-type SumRequest struct {
+// SignupRequest collects the request parameters for the Signup method.
+type SignupRequest struct {
 	A, B int
 }
 
-// SumResponse collects the response values for the Sum method.
-type SumResponse struct {
+// SignupResponse collects the response values for the Signup method.
+type SignupResponse struct {
 	V   int   `json:"v"`
 	Err error `json:"-"` // should be intercepted by Failed/errorEncoder
 }
 
 // Failed implements endpoint.Failer.
-func (r SumResponse) Failed() error { return r.Err }
+func (r SignupResponse) Failed() error { return r.Err }
 
 // ConcatRequest collects the request parameters for the Concat method.
 type ConcatRequest struct {

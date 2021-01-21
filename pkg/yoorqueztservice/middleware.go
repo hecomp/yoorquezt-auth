@@ -22,11 +22,11 @@ type loggingMiddleware struct {
 	next   Service
 }
 
-func (mw loggingMiddleware) Sum(ctx context.Context, a, b int) (v int, err error) {
+func (mw loggingMiddleware) Signup(ctx context.Context, a, b int) (v int, err error) {
 	defer func() {
-		mw.logger.Log("method", "Sum", "a", a, "b", b, "v", v, "err", err)
+		mw.logger.Log("method", "Signup", "a", a, "b", b, "v", v, "err", err)
 	}()
-	return mw.next.Sum(ctx, a, b)
+	return mw.next.Signup(ctx, a, b)
 }
 
 func (mw loggingMiddleware) Concat(ctx context.Context, a, b string) (v string, err error) {
@@ -55,8 +55,8 @@ type instrumentingMiddleware struct {
 	next  Service
 }
 
-func (mw instrumentingMiddleware) Sum(ctx context.Context, a, b int) (int, error) {
-	v, err := mw.next.Sum(ctx, a, b)
+func (mw instrumentingMiddleware) Signup(ctx context.Context, a, b int) (int, error) {
+	v, err := mw.next.Signup(ctx, a, b)
 	mw.ints.Add(float64(v))
 	return v, err
 }

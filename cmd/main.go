@@ -112,7 +112,7 @@ func main() {
 			Namespace: "example",
 			Subsystem: "yoorqueztauthsvc",
 			Name:      "integers_summed",
-			Help:      "Total count of integers summed via the Sum method.",
+			Help:      "Total count of integers summed via the Signup method.",
 		}, []string{})
 		chars = prometheus.NewCounterFrom(stdprometheus.CounterOpts{
 			Namespace: "example",

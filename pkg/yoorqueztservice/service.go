@@ -10,7 +10,7 @@ import (
 
 // Service describes a service that adds things together.
 type Service interface {
-	Sum(ctx context.Context, a, b int) (int, error)
+	Signup(ctx context.Context, a, b int) (int, error)
 	Concat(ctx context.Context, a, b string) (string, error)
 }
 
@@ -52,7 +52,7 @@ const (
 	maxLen = 10
 )
 
-func (s basicService) Sum(_ context.Context, a, b int) (int, error) {
+func (s basicService) Signup(_ context.Context, a, b int) (int, error) {
 	if a == 0 && b == 0 {
 		return 0, ErrTwoZeroes
 	}
