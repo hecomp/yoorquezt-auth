@@ -1,13 +1,14 @@
 package yoorqueztendpoint
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
-
-	"golang.org/x/time/rate"
 
 	stdopentracing "github.com/opentracing/opentracing-go"
 	stdzipkin "github.com/openzipkin/zipkin-go"
 	"github.com/sony/gobreaker"
+	"golang.org/x/time/rate"
 
 	"github.com/go-kit/kit/circuitbreaker"
 	"github.com/go-kit/kit/endpoint"
@@ -17,6 +18,8 @@ import (
 	"github.com/go-kit/kit/tracing/opentracing"
 	"github.com/go-kit/kit/tracing/zipkin"
 
+	"github.com/hecomp/yoorquezt-auth/internal/data"
+	"github.com/hecomp/yoorquezt-auth/internal/utils"
 	"github.com/hecomp/yoorquezt-auth/pkg/yoorqueztservice"
 )
 
@@ -30,10 +33,10 @@ type Set struct {
 
 // New returns a Set that wraps the provided server, and wires in all of the
 // expected endpoint middlewares via the various parameters.
-func New(svc yoorqueztservice.Service, logger log.Logger, duration metrics.Histogram, otTracer stdopentracing.Tracer, zipkinTracer *stdzipkin.Tracer) Set {
+func New(svc yoorqueztservice.Authentication, mailSvc yoorqueztservice.MailService, logger log.Logger, conf *utils.Configurations, validator *data.Validation, duration metrics.Histogram, otTracer stdopentracing.Tracer, zipkinTracer *stdzipkin.Tracer) Set {
 	var signupEndpoint endpoint.Endpoint
 	{
-		signupEndpoint = MakeSignupEndpoint(svc)
+		signupEndpoint = MakeSignupEndpoint(svc, mailSvc, conf, validator)
 		// Signup is limited to 1 request per second with burst of 1 request.
 		// Note, rate is defined as a time interval between requests.
 		signupEndpoint = ratelimit.NewErroringLimiter(rate.NewLimiter(rate.Every(time.Second), 1))(signupEndpoint)
@@ -67,13 +70,45 @@ func New(svc yoorqueztservice.Service, logger log.Logger, duration metrics.Histo
 
 // Signup implements the service interface, so Set may be used as a service.
 // This is primarily useful in the context of a client library.
-func (s Set) Signup(ctx context.Context, a, b int) (int, error) {
-	resp, err := s.SignupEndpoint(ctx, SignupRequest{A: a, B: b})
+func (s Set) Signup(ctx context.Context, user *data.User) error {
+	resp, err := s.SignupEndpoint(ctx, user)
 	if err != nil {
-		return 0, err
+		return err
 	}
 	response := resp.(SignupResponse)
-	return response.V, response.Err
+	return response.Err
+}
+
+func (s Set) StoreVerificationData(ctx context.Context, verificationData *data.VerificationData) error {
+	panic("implement me")
+}
+
+func (s Set) HashPassword(password string) (string, error) {
+	panic("implement me")
+}
+
+func (s Set) Authenticate(reqUser *data.User, user *data.User) bool {
+	panic("implement me")
+}
+
+func (s Set) GenerateAccessToken(user *data.User) (string, error) {
+	panic("implement me")
+}
+
+func (s Set) GenerateRefreshToken(user *data.User) (string, error) {
+	panic("implement me")
+}
+
+func (s Set) GenerateCustomKey(userID string, password string) string {
+	panic("implement me")
+}
+
+func (s Set) ValidateAccessToken(token string) (string, error) {
+	panic("implement me")
+}
+
+func (s Set) ValidateRefreshToken(token string) (string, string, error) {
+	panic("implement me")
 }
 
 // Concat implements the service interface, so Set may be used as a
@@ -88,16 +123,60 @@ func (s Set) Concat(ctx context.Context, a, b string) (string, error) {
 }
 
 // MakeSignupEndpoint constructs a Signup endpoint wrapping the service.
-func MakeSignupEndpoint(s yoorqueztservice.Service) endpoint.Endpoint {
+func MakeSignupEndpoint(s yoorqueztservice.Authentication, mailSvc yoorqueztservice.MailService, configs *utils.Configurations, validator *data.Validation) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		req := request.(SignupRequest)
-		v, err := s.Signup(ctx, req.A, req.B)
-		return SignupResponse{V: v, Err: err}, nil
+		user := request.(data.User)
+
+		hashedPass, err := s.HashPassword(user.Password)
+		if err != nil {
+			return GenericResponse{Status: false, Message: UserCreationFailed}, nil
+		}
+		user.Password = hashedPass
+		user.TokenHash = utils.GenerateRandomString(15)
+
+		err = s.Signup(ctx, &user)
+		if err != nil {
+			errMsg := err.Error()
+			if strings.Contains(errMsg, PgDuplicateKeyMsg) {
+				return GenericResponse{Status: false, Message: ErrUserAlreadyExists}, nil
+			} else {
+				return GenericResponse{Status: false, Message: UserCreationFailed}, nil
+			}
+		}
+
+		// Send verification mail
+		from := "hebercomp@yahoo.com"
+		to := []string{user.Email}
+		subject := "Email Verification for hecomp"
+		mailType := yoorqueztservice.MailConfirmation
+		mailData := &yoorqueztservice.MailData{
+			Username: user.Username,
+			Code: 	utils.GenerateRandomString(8),
+		}
+
+		mailReq := mailSvc.NewMail(from, to, subject, mailType, mailData)
+		err = mailSvc.SendMail(mailReq)
+		if err != nil {
+			return GenericResponse{Status: false, Message: UserCreationFailed}, nil
+		}
+
+		verificationData := &data.VerificationData{
+			Email: user.Email,
+			Code : mailData.Code,
+			Type : data.MailConfirmation,
+			ExpiresAt: time.Now().Add(time.Hour * time.Duration(configs.MailVerifCodeExpiration)),
+		}
+		err = s.StoreVerificationData(ctx, verificationData)
+		if err != nil {
+			return GenericResponse{Status: false, Message: UserCreationFailed}, nil
+		}
+
+		return GenericResponse{Status: true, Message: UserCreationSuccess}, nil
 	}
 }
 
 // MakeConcatEndpoint constructs a Concat endpoint wrapping the service.
-func MakeConcatEndpoint(s yoorqueztservice.Service) endpoint.Endpoint {
+func MakeConcatEndpoint(s yoorqueztservice.Authentication) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(ConcatRequest)
 		v, err := s.Concat(ctx, req.A, req.B)
@@ -111,15 +190,57 @@ var (
 	_ endpoint.Failer = ConcatResponse{}
 )
 
-// SignupRequest collects the request parameters for the Signup method.
-type SignupRequest struct {
-	A, B int
+// GenericResponse is the format of our response
+type GenericResponse struct {
+	Status  bool        `json:"status"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data"`
 }
+
+// ValidationError is a collection of validation error messages
+type ValidationError struct {
+	Errors []string `json:"errors"`
+}
+
+// Below data types are used for encoding and decoding b/t go types and json
+type TokenResponse struct {
+	RefreshToken string `json:"refresh_token"`
+	AccessToken  string `json:"access_token"`
+}
+
+type AuthResponse struct {
+	RefreshToken string `json:"refresh_token"`
+	AccessToken  string `json:"access_token"`
+	Username     string `json:"username"`
+}
+
+type UsernameUpdate struct {
+	Username string `json:"username"`
+}
+
+type CodeVerificationReq struct {
+	Code string `json: "code"`
+	Type string `json" "type"`
+}
+
+type PasswordResetReq struct {
+	Password string `json: "password"`
+	PasswordRe string `json: "password_re"`
+	Code 		string `json: "code"`
+}
+
+var ErrUserAlreadyExists = fmt.Sprintf("User already exists with the given email")
+var ErrUserNotFound = fmt.Sprintf("No user account exists with given email. Please sign in first")
+var UserCreationFailed = fmt.Sprintf("Unable to create user.Please try again later")
+var UserCreationSuccess = fmt.Sprintf("Please verify your email account using the confirmation code send to your mail")
+
+var PgDuplicateKeyMsg = "duplicate key value violates unique constraint"
+var PgNoRowsMsg = "no rows in result set"
 
 // SignupResponse collects the response values for the Signup method.
 type SignupResponse struct {
-	V   int   `json:"v"`
-	Err error `json:"-"` // should be intercepted by Failed/errorEncoder
+	Message   string   `json:",omitempty"`
+	Err       error `json:"err,omitempty"` // should be intercepted by Failed/errorEncoder
 }
 
 // Failed implements endpoint.Failer.

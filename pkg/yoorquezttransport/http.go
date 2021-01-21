@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/hecomp/yoorquezt-auth/internal/data"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -67,7 +68,7 @@ func NewHTTPHandler(endpoints yoorqueztendpoint.Set, otTracer stdopentracing.Tra
 // remote instance. We expect instance to come from a service discovery system,
 // so likely of the form "host:port". We bake-in certain middlewares,
 // implementing the client library pattern.
-func NewHTTPClient(instance string, otTracer stdopentracing.Tracer, zipkinTracer *stdzipkin.Tracer, logger log.Logger) (yoorqueztservice.Service, error) {
+func NewHTTPClient(instance string, otTracer stdopentracing.Tracer, zipkinTracer *stdzipkin.Tracer, logger log.Logger) (yoorqueztservice.Authentication, error) {
 	// Quickly sanitize the instance string.
 	if !strings.HasPrefix(instance, "http") {
 		instance = "http://" + instance
@@ -141,8 +142,8 @@ func NewHTTPClient(instance string, otTracer stdopentracing.Tracer, zipkinTracer
 		}))(concatEndpoint)
 	}
 
-	// Returning the endpoint.Set as a service.Service relies on the
-	// endpoint.Set implementing the Service methods. That's just a simple bit
+	// Returning the endpoint.Set as a service.Authentication relies on the
+	// endpoint.Set implementing the Authentication methods. That's just a simple bit
 	// of glue code.
 	return yoorqueztendpoint.Set{
 		SignupEndpoint: signupEndpoint,
@@ -181,13 +182,28 @@ type errorWrapper struct {
 	Error string `json:"error"`
 }
 
+var (
+	ErrBadRouting = errors.New("Error bad routing")
+	ErrNotFound   = errors.New("Asset not found\n")
+	ErrBadRequest = errors.New("Bad Request")
+)
+
 // decodeHTTPSignupRequest is a transport/http.DecodeRequestFunc that decodes a
 // JSON-encoded sum request from the HTTP request body. Primarily useful in a
 // server.
 func decodeHTTPSignupRequest(_ context.Context, r *http.Request) (interface{}, error) {
-	var req yoorqueztendpoint.SignupRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
-	return req, err
+	var user data.User
+
+	if r.Body == nil {
+		return nil, ErrBadRequest
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil {
+		return nil, errors.New(err.Error())
+	} else {
+		return user, nil
+	}
 }
 
 // decodeHTTPConcatRequest is a transport/http.DecodeRequestFunc that decodes a

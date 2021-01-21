@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"text/tabwriter"
 
+	"github.com/jmoiron/sqlx"
 	lightstep "github.com/lightstep/lightstep-tracer-go"
 	"github.com/oklog/oklog/pkg/group"
 	stdopentracing "github.com/opentracing/opentracing-go"
@@ -27,9 +28,11 @@ import (
 	"github.com/go-kit/kit/metrics/prometheus"
 	kitgrpc "github.com/go-kit/kit/transport/grpc"
 
+	"github.com/hecomp/yoorquezt-auth/internal/data"
+	"github.com/hecomp/yoorquezt-auth/internal/utils"
 	yoorqueztpb "github.com/hecomp/yoorquezt-auth/pb"
-
 	"github.com/hecomp/yoorquezt-auth/pkg/yoorqueztendpoint"
+	"github.com/hecomp/yoorquezt-auth/pkg/yoorqueztrepository"
 	"github.com/hecomp/yoorquezt-auth/pkg/yoorqueztservice"
 	"github.com/hecomp/yoorquezt-auth/pkg/yoorquezttransport"
 )
@@ -57,6 +60,29 @@ func main() {
 		logger = log.NewLogfmtLogger(os.Stderr)
 		logger = log.With(logger, "ts", log.DefaultTimestampUTC)
 		logger = log.With(logger, "caller", log.DefaultCaller)
+	}
+
+	var configs *utils.Configurations
+	{
+		configs = utils.NewConfigurations(logger)
+	}
+
+	// validator contains all the methods that are need to validate the user json in request
+	var validator *data.Validation
+	{
+		validator = data.NewValidation()
+
+	}
+
+	var db *sqlx.DB
+	{
+		// create a new connection to the postgres db store
+		db, err := yoorqueztrepository.NewConnection(configs, logger)
+		if err != nil {
+			logger.Log("unable to connect to db", "error", err)
+			panic(err)
+		}
+		defer db.Close()
 	}
 
 	var zipkinTracer *zipkin.Tracer
@@ -140,8 +166,11 @@ func main() {
 	// the interfaces that the transports expect. Note that we're not binding
 	// them to ports or anything yet; we'll do that next.
 	var (
-		service        = yoorqueztservice.New(logger, ints, chars)
-		endpoints      = yoorqueztendpoint.New(service, logger, duration, tracer, zipkinTracer)
+		// repository contains all the methods that interact with DB to perform CURD operations for user.
+		repository     = yoorqueztrepository.NewPostgresRepository(db, logger)
+		mailService    = yoorqueztservice.NewMailService(logger, configs, ints, chars)
+		service        = yoorqueztservice.New(logger, configs, repository, ints, chars)
+		endpoints      = yoorqueztendpoint.New(service, mailService, logger , configs, validator, duration, tracer, zipkinTracer)
 		httpHandler    = yoorquezttransport.NewHTTPHandler(endpoints, tracer, zipkinTracer, logger)
 		grpcServer     = yoorquezttransport.NewGRPCServer(endpoints, tracer, zipkinTracer, logger)
 	)

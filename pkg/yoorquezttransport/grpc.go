@@ -86,7 +86,7 @@ func (s *grpcServer) Concat(ctx context.Context, req *pb.ConcatRequest) (*pb.Con
 // of the conn. The caller is responsible for constructing the conn, and
 // eventually closing the underlying transport. We bake-in certain middlewares,
 // implementing the client library pattern.
-func NewGRPCClient(conn *grpc.ClientConn, otTracer stdopentracing.Tracer, zipkinTracer *stdzipkin.Tracer, logger log.Logger) yoorqueztservice.Service {
+func NewGRPCClient(conn *grpc.ClientConn, otTracer stdopentracing.Tracer, zipkinTracer *stdzipkin.Tracer, logger log.Logger) yoorqueztservice.Authentication {
 	// We construct a single ratelimiter middleware, to limit the total outgoing
 	// QPS from this client to all methods on the remote instance. We also
 	// construct per-endpoint circuitbreaker middlewares to demonstrate how
@@ -152,8 +152,8 @@ func NewGRPCClient(conn *grpc.ClientConn, otTracer stdopentracing.Tracer, zipkin
 		}))(concatEndpoint)
 	}
 
-	// Returning the endpoint.Set as a service.Service relies on the
-	// endpoint.Set implementing the Service methods. That's just a simple bit
+	// Returning the endpoint.Set as a service.Authentication relies on the
+	// endpoint.Set implementing the Authentication methods. That's just a simple bit
 	// of glue code.
 	return yoorqueztendpoint.Set{
 		SignupEndpoint: sumEndpoint,
