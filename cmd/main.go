@@ -170,8 +170,8 @@ func main() {
 		// repository contains all the methods that interact with DB to perform CURD operations for user.
 		repository     = yoorqueztrepository.NewPostgresRepository(db, logger)
 		mailService    = yoorqueztservice.NewMailService(logger, configs, ints, chars)
-		service        = yoorqueztservice.New(logger, configs, repository, mailService, validator, ints, chars)
-		endpoints      = yoorqueztendpoint.New(service, logger, duration, tracer, zipkinTracer)
+		service        = yoorqueztservice.New(logger, configs, repository, ints, chars)
+		endpoints      = yoorqueztendpoint.New(service, logger, mailService, validator, repository, configs, duration, tracer, zipkinTracer)
 		httpHandler    = yoorquezttransport.NewHTTPHandler(endpoints, tracer, zipkinTracer, logger)
 		grpcServer     = yoorquezttransport.NewGRPCServer(endpoints, tracer, zipkinTracer, logger)
 	)

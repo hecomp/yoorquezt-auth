@@ -3,6 +3,7 @@ package yoorqueztendpoint
 import (
 	"context"
 	"fmt"
+	"github.com/hecomp/yoorquezt-auth/pkg/yoorqueztrepository"
 	"strings"
 	"time"
 
@@ -32,15 +33,22 @@ type Set struct {
 	ConcatEndpoint endpoint.Endpoint
 }
 
+var (
+	authHelper IAuthHelper
+)
+
 // New returns a Set that wraps the provided server, and wires in all of the
 // expected endpoint middlewares via the various parameters.
-func New(svc yoorqueztservice.Authentication, logger log.Logger, duration metrics.Histogram, otTracer stdopentracing.Tracer, zipkinTracer *stdzipkin.Tracer) Set {
+func New(svc yoorqueztservice.Authentication, logger log.Logger, mailService yoorqueztservice.MailService, validator *data.Validation, repository *yoorqueztrepository.PostgresRepository, configs *utils.Configurations, duration metrics.Histogram, otTracer stdopentracing.Tracer, zipkinTracer *stdzipkin.Tracer) Set {
+
+	authHelper = NewHelper(logger, mailService, validator, repository, configs)
+
 	var signupEndpoint endpoint.Endpoint
 	{
 		signupEndpoint = MakeSignupEndpoint(svc)
 		// Signup is limited to 1 request per second with burst of 1 request.
 		// Note, rate is defined as a time interval between requests.
-		signupEndpoint = ratelimit.NewErroringLimiter(rate.NewLimiter(rate.Every(time.Second), 1))(signupEndpoint)
+		signupEndpoint = ratelimit.NewErroringLimiter(rate.NewLimiter(rate.Limit(1), 100))(signupEndpoint)
 		signupEndpoint = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{}))(signupEndpoint)
 		signupEndpoint = opentracing.TraceServer(otTracer, "Signup")(signupEndpoint)
 		if zipkinTracer != nil {
@@ -80,50 +88,6 @@ func (s Set) Signup(ctx context.Context, user *data.User) error {
 	return response.Err
 }
 
-func (s Set) ValidateUser(user *data.User) data.ValidationErrors {
-	panic("implement me")
-}
-
-func (s Set) SenMail(from string, to []string, subject string, mailType yoorqueztservice.MailType, mailData *yoorqueztservice.MailData) error {
-	panic("implement me")
-}
-
-func (s Set) BuildVerificationData(user *data.User, mailData *yoorqueztservice.MailData) *data.VerificationData {
-	panic("implement me")
-}
-
-func (s Set) StoreVerificationData(ctx context.Context, verificationData *data.VerificationData) error {
-	panic("implement me")
-}
-
-func (s Set) HashPassword(password string) (string, error) {
-	panic("implement me")
-}
-
-func (s Set) Authenticate(reqUser *data.User, user *data.User) bool {
-	panic("implement me")
-}
-
-func (s Set) GenerateAccessToken(user *data.User) (string, error) {
-	panic("implement me")
-}
-
-func (s Set) GenerateRefreshToken(user *data.User) (string, error) {
-	panic("implement me")
-}
-
-func (s Set) GenerateCustomKey(userID string, password string) string {
-	panic("implement me")
-}
-
-func (s Set) ValidateAccessToken(token string) (string, error) {
-	panic("implement me")
-}
-
-func (s Set) ValidateRefreshToken(token string) (string, string, error) {
-	panic("implement me")
-}
-
 // Concat implements the service interface, so Set may be used as a
 // service. This is primarily useful in the context of a client library.
 func (s Set) Concat(ctx context.Context, a, b string) (string, error) {
@@ -141,12 +105,12 @@ func MakeSignupEndpoint(authService yoorqueztservice.Authentication) endpoint.En
 		user := request.(data.User)
 
 		// Validate user
-		errs := authService.ValidateUser(&user)
+		errs := authHelper.ValidateUser(&user)
 		if len(errs) != 0 {
 			return SignupResponse{Status: false, Message: strings.Join(errs.Errors(), ","), Err: err}, nil
 		}
 
-		hashedPass, err := authService.HashPassword(user.Password)
+		hashedPass, err := authHelper.HashPassword(user.Password)
 		if err != nil {
 			return SignupResponse{Status: false, Message: UserCreationFailed}, nil
 		}
@@ -173,13 +137,13 @@ func MakeSignupEndpoint(authService yoorqueztservice.Authentication) endpoint.En
 			Code: 	utils.GenerateRandomString(8),
 		}
 
-		err = authService.SenMail(from, to, subject, mailType, mailData)
+		err = authHelper.SenMail(from, to, subject, mailType, mailData)
 		if err != nil {
 			return SignupResponse{Status: false, Message: UserCreationFailed, Err: err}, err
 		}
 
-		verificationData := authService.BuildVerificationData(&user, mailData)
-		err = authService.StoreVerificationData(ctx, verificationData)
+		verificationData := authHelper.BuildVerificationData(&user, mailData)
+		err = authHelper.StoreVerificationData(ctx, verificationData)
 		if err != nil {
 			return SignupResponse{Status: false, Message: UserCreationFailed, Err: err}, err
 		}
