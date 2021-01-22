@@ -66,27 +66,66 @@ func (mw loggingMiddleware) HashPassword(password string) (string, error) {
 }
 
 func (mw loggingMiddleware) Authenticate(reqUser *data.User, user *data.User) bool {
-	panic("implement me")
+	defer func() {
+		mw.logger.Log("method", "Authenticate")
+	}()
+	return mw.next.Authenticate(reqUser, user)
 }
 
 func (mw loggingMiddleware) GenerateAccessToken(user *data.User) (string, error) {
-	panic("implement me")
+	defer func() {
+		mw.logger.Log("method", "GenerateAccessToken")
+	}()
+	return mw.next.GenerateAccessToken(user)
 }
 
 func (mw loggingMiddleware) GenerateRefreshToken(user *data.User) (string, error) {
-	panic("implement me")
+	defer func() {
+		mw.logger.Log("method", "GenerateRefreshToken")
+	}()
+	return mw.next.GenerateRefreshToken(user)
 }
 
 func (mw loggingMiddleware) GenerateCustomKey(userID string, password string) string {
-	panic("implement me")
+	defer func() {
+		mw.logger.Log("method", "GenerateCustomKey")
+	}()
+	return mw.next.GenerateCustomKey(userID, password)
 }
 
 func (mw loggingMiddleware) ValidateAccessToken(token string) (string, error) {
-	panic("implement me")
+	defer func() {
+		mw.logger.Log("method", "ValidateAccessToken")
+	}()
+	return mw.next.ValidateAccessToken(token)
 }
 
 func (mw loggingMiddleware) ValidateRefreshToken(token string) (string, string, error) {
-	panic("implement me")
+	defer func() {
+		mw.logger.Log("method", "ValidateRefreshToken")
+	}()
+	return mw.next.ValidateRefreshToken(token)
+}
+
+func (mw loggingMiddleware) ValidateUser(user *data.User) data.ValidationErrors {
+	defer func() {
+		mw.logger.Log("method", "ValidateUser")
+	}()
+	return mw.next.ValidateUser(user)
+}
+
+func (mw loggingMiddleware) SenMail(from string, to []string, subject string, mailType MailType, mailData *MailData) error {
+	defer func() {
+		mw.logger.Log("method", "SenMail")
+	}()
+	return mw.next.SenMail(from, to, subject, mailType,  mailData)
+}
+
+func (mw loggingMiddleware) BuildVerificationData(user *data.User, mailData *MailData) *data.VerificationData {
+	defer func() {
+		mw.logger.Log("method", "BuildVerificationData")
+	}()
+	return mw.next.BuildVerificationData(user, mailData)
 }
 
 func (mw loggingMiddleware) StoreVerificationData(ctx context.Context, verificationData *data.VerificationData) error {
@@ -129,6 +168,24 @@ type instrumentingMiddleware struct {
 	next  Authentication
 }
 
+func (mw instrumentingMiddleware) ValidateUser(user *data.User) data.ValidationErrors {
+	err := mw.next.ValidateUser(user)
+	mw.chars.Add(float64(len(err)))
+	return err
+}
+
+func (mw instrumentingMiddleware) SenMail(from string, to []string, subject string, mailType MailType, mailData *MailData) error {
+	err := mw.next.SenMail(from, to, subject, mailType, mailData)
+	mw.chars.Add(float64(len(err.Error())))
+	return err
+}
+
+func (mw instrumentingMiddleware) BuildVerificationData(user *data.User, mailData *MailData) *data.VerificationData {
+	verificationData := mw.next.BuildVerificationData(user, mailData)
+	mw.chars.Add(float64(len(verificationData.Email)))
+	return verificationData
+}
+
 func (mw instrumentingMiddleware) StoreVerificationData(ctx context.Context, verificationData *data.VerificationData) error {
 	err := mw.next.StoreVerificationData(ctx, verificationData)
 	mw.chars.Add(float64(len(verificationData.Email)))
@@ -142,27 +199,39 @@ func (mw instrumentingMiddleware) HashPassword(password string) (string, error) 
 }
 
 func (mw instrumentingMiddleware) Authenticate(reqUser *data.User, user *data.User) bool {
-	panic("implement me")
+	isAuth := mw.next.Authenticate(reqUser, user)
+	mw.chars.Add(float64(len(reqUser.ID)))
+	return isAuth
 }
 
 func (mw instrumentingMiddleware) GenerateAccessToken(user *data.User) (string, error) {
-	panic("implement me")
+	token, err := mw.next.GenerateAccessToken(user)
+	mw.chars.Add(float64(len(token)))
+	return token, err
 }
 
 func (mw instrumentingMiddleware) GenerateRefreshToken(user *data.User) (string, error) {
-	panic("implement me")
+	token, err := mw.next.GenerateRefreshToken(user)
+	mw.chars.Add(float64(len(token)))
+	return token, err
 }
 
 func (mw instrumentingMiddleware) GenerateCustomKey(userID string, password string) string {
-	panic("implement me")
+	token := mw.next.GenerateCustomKey(userID, password)
+	mw.chars.Add(float64(len(token)))
+	return token
 }
 
 func (mw instrumentingMiddleware) ValidateAccessToken(token string) (string, error) {
-	panic("implement me")
+	token, err := mw.next.ValidateAccessToken(token)
+	mw.chars.Add(float64(len(token)))
+	return token, err
 }
 
 func (mw instrumentingMiddleware) ValidateRefreshToken(token string) (string, string, error) {
-	panic("implement me")
+	userId, customKey, err := mw.next.ValidateRefreshToken(token)
+	mw.chars.Add(float64(len(userId)))
+	return userId, customKey, err
 }
 
 func (mw instrumentingMiddleware) Signup(ctx context.Context, user *data.User) error {

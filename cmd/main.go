@@ -170,8 +170,8 @@ func main() {
 		// repository contains all the methods that interact with DB to perform CURD operations for user.
 		repository     = yoorqueztrepository.NewPostgresRepository(db, logger)
 		mailService    = yoorqueztservice.NewMailService(logger, configs, ints, chars)
-		service        = yoorqueztservice.New(logger, configs, repository, ints, chars)
-		endpoints      = yoorqueztendpoint.New(service, mailService, logger , configs, validator, duration, tracer, zipkinTracer)
+		service        = yoorqueztservice.New(logger, configs, repository, mailService, validator, ints, chars)
+		endpoints      = yoorqueztendpoint.New(service, logger, duration, tracer, zipkinTracer)
 		httpHandler    = yoorquezttransport.NewHTTPHandler(endpoints, tracer, zipkinTracer, logger)
 		grpcServer     = yoorquezttransport.NewGRPCServer(endpoints, tracer, zipkinTracer, logger)
 	)
@@ -231,7 +231,7 @@ func main() {
 			// we add the Go Kit gRPC Interceptor to our gRPC service as it is used by
 			// the here demonstrated zipkin tracing middleware.
 			baseServer := grpc.NewServer(grpc.UnaryInterceptor(kitgrpc.Interceptor))
-			yoorqueztpb.RegisterAddServer(baseServer, grpcServer)
+			yoorqueztpb.RegisterAuthServer(baseServer, grpcServer)
 			return baseServer.Serve(grpcListener)
 		}, func(error) {
 			grpcListener.Close()

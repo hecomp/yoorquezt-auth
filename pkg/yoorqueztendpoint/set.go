@@ -34,10 +34,10 @@ type Set struct {
 
 // New returns a Set that wraps the provided server, and wires in all of the
 // expected endpoint middlewares via the various parameters.
-func New(svc yoorqueztservice.Authentication, mailSvc yoorqueztservice.MailService, logger log.Logger, conf *utils.Configurations, validator *data.Validation, duration metrics.Histogram, otTracer stdopentracing.Tracer, zipkinTracer *stdzipkin.Tracer) Set {
+func New(svc yoorqueztservice.Authentication, logger log.Logger, duration metrics.Histogram, otTracer stdopentracing.Tracer, zipkinTracer *stdzipkin.Tracer) Set {
 	var signupEndpoint endpoint.Endpoint
 	{
-		signupEndpoint = MakeSignupEndpoint(svc, mailSvc, conf, validator, logger)
+		signupEndpoint = MakeSignupEndpoint(svc)
 		// Signup is limited to 1 request per second with burst of 1 request.
 		// Note, rate is defined as a time interval between requests.
 		signupEndpoint = ratelimit.NewErroringLimiter(rate.NewLimiter(rate.Every(time.Second), 1))(signupEndpoint)
@@ -78,6 +78,18 @@ func (s Set) Signup(ctx context.Context, user *data.User) error {
 	}
 	response := resp.(SignupResponse)
 	return response.Err
+}
+
+func (s Set) ValidateUser(user *data.User) data.ValidationErrors {
+	panic("implement me")
+}
+
+func (s Set) SenMail(from string, to []string, subject string, mailType yoorqueztservice.MailType, mailData *yoorqueztservice.MailData) error {
+	panic("implement me")
+}
+
+func (s Set) BuildVerificationData(user *data.User, mailData *yoorqueztservice.MailData) *data.VerificationData {
+	panic("implement me")
 }
 
 func (s Set) StoreVerificationData(ctx context.Context, verificationData *data.VerificationData) error {
@@ -124,32 +136,29 @@ func (s Set) Concat(ctx context.Context, a, b string) (string, error) {
 }
 
 // MakeSignupEndpoint constructs a Signup endpoint wrapping the service.
-func MakeSignupEndpoint(s yoorqueztservice.Authentication, mailSvc yoorqueztservice.MailService, configs *utils.Configurations, validator *data.Validation, logger log.Logger) endpoint.Endpoint {
+func MakeSignupEndpoint(authService yoorqueztservice.Authentication) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		user := request.(data.User)
 
 		// Validate user
-		errs := validator.Validate(user)
+		errs := authService.ValidateUser(&user)
 		if len(errs) != 0 {
-			logger.Log("validation of user json failed", "error", errs)
 			return SignupResponse{Status: false, Message: strings.Join(errs.Errors(), ","), Err: err}, nil
 		}
 
-		hashedPass, err := s.HashPassword(user.Password)
+		hashedPass, err := authService.HashPassword(user.Password)
 		if err != nil {
 			return SignupResponse{Status: false, Message: UserCreationFailed}, nil
 		}
 		user.Password = hashedPass
 		user.TokenHash = utils.GenerateRandomString(15)
 
-		err = s.Signup(ctx, &user)
+		err = authService.Signup(ctx, &user)
 		if err != nil {
 			errMsg := err.Error()
 			if strings.Contains(errMsg, PgDuplicateKeyMsg) {
-				logger.Log(ErrUserAlreadyExists, "error", err)
 				return SignupResponse{Status: false, Message: ErrUserAlreadyExists}, nil
 			} else {
-				logger.Log(UserCreationFailed, "error", err)
 				return SignupResponse{Status: false, Message: UserCreationFailed}, nil
 			}
 		}
@@ -164,19 +173,13 @@ func MakeSignupEndpoint(s yoorqueztservice.Authentication, mailSvc yoorqueztserv
 			Code: 	utils.GenerateRandomString(8),
 		}
 
-		mailReq := mailSvc.NewMail(from, to, subject, mailType, mailData)
-		err = mailSvc.SendMail(mailReq)
+		err = authService.SenMail(from, to, subject, mailType, mailData)
 		if err != nil {
 			return SignupResponse{Status: false, Message: UserCreationFailed, Err: err}, err
 		}
 
-		verificationData := &data.VerificationData{
-			Email: user.Email,
-			Code : mailData.Code,
-			Type : data.MailConfirmation,
-			ExpiresAt: time.Now().Add(time.Hour * time.Duration(configs.MailVerifCodeExpiration)),
-		}
-		err = s.StoreVerificationData(ctx, verificationData)
+		verificationData := authService.BuildVerificationData(&user, mailData)
+		err = authService.StoreVerificationData(ctx, verificationData)
 		if err != nil {
 			return SignupResponse{Status: false, Message: UserCreationFailed, Err: err}, err
 		}

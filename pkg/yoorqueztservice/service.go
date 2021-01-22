@@ -31,6 +31,9 @@ type Authentication interface {
 	GenerateCustomKey(userID string, password string) string
 	ValidateAccessToken(token string) (string, error)
 	ValidateRefreshToken(token string) (string, string, error)
+	ValidateUser(user *data.User) data.ValidationErrors
+	SenMail(from string, to []string, subject string, mailType MailType, mailData *MailData) error
+	BuildVerificationData(user *data.User, mailData *MailData) *data.VerificationData
 }
 
 // RefreshTokenCustomClaims specifies the claims for refresh token
@@ -49,10 +52,10 @@ type AccessTokenCustomClaims struct {
 }
 
 // New returns a basic Authentication with all of the expected middlewares wired in.
-func New(logger log.Logger, configs *utils.Configurations, repository *yoorqueztrepository.PostgresRepository, ints, chars metrics.Counter) Authentication {
+func New(logger log.Logger, configs *utils.Configurations, repository *yoorqueztrepository.PostgresRepository, mailService MailService, validator *data.Validation, ints, chars metrics.Counter) Authentication {
 	var svc Authentication
 	{
-		svc = NewAuthService(logger, configs, repository)
+		svc = NewAuthService(logger, configs, repository, mailService, validator)
 		svc = LoggingMiddleware(logger)(svc)
 		svc = InstrumentingMiddleware(ints, chars)(svc)
 	}
@@ -60,8 +63,8 @@ func New(logger log.Logger, configs *utils.Configurations, repository *yoorquezt
 }
 
 var (
-	// ErrTwoZeroes is an arbitrary business rule for the Add method.
-	ErrTwoZeroes = errors.New("can't sum two zeroes")
+	// ErrTwoZeroes is an arbitrary business rule for the Signup method.
+	ErrTwoZeroes = errors.New("can't signup zeroes")
 
 	// ErrIntOverflow protects the Add method. We've decided that this error
 	// indicates a misbehaving service and should count against e.g. circuit
@@ -75,17 +78,21 @@ var (
 
 // AuthService is the implementation of our Authentication
 type AuthService struct{
-	logger log.Logger
-	configs *utils.Configurations
-	repo *yoorqueztrepository.PostgresRepository
+	logger      log.Logger
+	configs     *utils.Configurations
+	repo        *yoorqueztrepository.PostgresRepository
+	mailService MailService
+	validator   *data.Validation
 }
 
 // NewAuthService returns a naïve, stateless implementation of Authentication.
-func NewAuthService(logger log.Logger, configs *utils.Configurations, repository *yoorqueztrepository.PostgresRepository) *AuthService {
+func NewAuthService(logger log.Logger, configs *utils.Configurations, repository *yoorqueztrepository.PostgresRepository, mailService MailService, validator *data.Validation) *AuthService {
 	return &AuthService{
 		logger: logger,
 		configs: configs,
 		repo: repository,
+		mailService: mailService,
+		validator: validator,
 	}
 }
 
@@ -285,8 +292,36 @@ func (auth *AuthService) HashPassword(password string) (string, error) {
 	return string(hashedPass), nil
 }
 
+func (auth *AuthService) ValidateUser(user *data.User) data.ValidationErrors {
+	err:= auth.validator.Validate(user)
+	if len(err) != 0 {
+		auth.logger.Log("validation of user json failed", "error", err)
+		return err
+	}
+	return err
+}
+
+func (auth *AuthService) SenMail(from string, to []string, subject string, mailType MailType, mailData *MailData) error {
+	mailReq := auth.mailService.NewMail(from, to, subject, mailType, mailData)
+	err := auth.mailService.SendMail(mailReq)
+	if err != nil {
+		auth.logger.Log("sending mail to user failed", "error", err)
+		return err
+	}
+	return nil
+}
+
+func (auth *AuthService) BuildVerificationData(user *data.User, mailData *MailData) *data.VerificationData {
+	return &data.VerificationData{
+		Email: user.Email,
+		Code : mailData.Code,
+		Type : data.MailConfirmation,
+		ExpiresAt: time.Now().Add(time.Hour * time.Duration(auth.configs.MailVerifCodeExpiration)),
+	}
+}
+
 // Concat implements Authentication.
-func (s AuthService) Concat(_ context.Context, a, b string) (string, error) {
+func (auth AuthService) Concat(_ context.Context, a, b string) (string, error) {
 	if len(a)+len(b) > maxLen {
 		return "", ErrMaxSizeExceeded
 	}
