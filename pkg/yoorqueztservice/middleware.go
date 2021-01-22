@@ -89,6 +89,13 @@ func (mw loggingMiddleware) ValidateRefreshToken(token string) (string, string, 
 	panic("implement me")
 }
 
+func (mw loggingMiddleware) StoreVerificationData(ctx context.Context, verificationData *data.VerificationData) error {
+	defer func() {
+		mw.logger.Log("method", "StoreVerificationData")
+	}()
+	return mw.next.StoreVerificationData(ctx, verificationData)
+}
+
 func (mw loggingMiddleware) Signup(ctx context.Context, user *data.User) (err error) {
 	defer func() {
 		mw.logger.Log("method", "Signup", "ID", user.ID, "Email", user.Email, "err", err)
@@ -120,6 +127,12 @@ type instrumentingMiddleware struct {
 	ints  metrics.Counter
 	chars metrics.Counter
 	next  Authentication
+}
+
+func (mw instrumentingMiddleware) StoreVerificationData(ctx context.Context, verificationData *data.VerificationData) error {
+	err := mw.next.StoreVerificationData(ctx, verificationData)
+	mw.chars.Add(float64(len(verificationData.Email)))
+	return err
 }
 
 func (mw instrumentingMiddleware) HashPassword(password string) (string, error) {

@@ -39,9 +39,9 @@ func NewConfigurations(logger log.Logger) *Configurations {
 
 	viper.SetDefault("SERVER_ADDRESS", "0.0.0.0:9090")
 	viper.SetDefault("DB_HOST", "localhost")
-	viper.SetDefault("DB_NAME", "bookite")
-	viper.SetDefault("DB_USER", "vignesh")
-	viper.SetDefault("DB_PASSWORD", "password")
+	viper.SetDefault("DB_NAME", "yoorquezt-dev")
+	viper.SetDefault("DB_USER", "postgres")
+	viper.SetDefault("DB_PASSWORD", "root")
 	viper.SetDefault("DB_PORT", "5432")
 	viper.SetDefault("ACCESS_TOKEN_PRIVATE_KEY_PATH", "./access-private.pem")
 	viper.SetDefault("ACCESS_TOKEN_PUBLIC_KEY_PATH", "./access-public.pem")

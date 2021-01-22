@@ -8,7 +8,7 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/jmoiron/sqlx"
-	uuid "github.com/satori/go.uuid"
+	"github.com/google/uuid"
 )
 
 // PostgresRepository has the implementation of the db methods.
@@ -23,14 +23,14 @@ func NewPostgresRepository(db *sqlx.DB, logger log.Logger) *PostgresRepository {
 }
 
 // Create inserts the given user into the database
-func (repo *PostgresRepository) Create(ctx context.Context, user *data.User) error {
-	user.ID = uuid.Must(uuid.NewV4()).String()
+func (repo *PostgresRepository) Create(ctx context.Context, user *data.User) (err error) {
+	user.ID = uuid.Must(uuid.NewRandom()).String()
 	user.CreatedAt = time.Now()
 	user.UpdatedAt = time.Now()
 
-	repo.logger.Log("creating user", hclog.Fmt("%#v", user))
+	repo.logger.Log("creating user", hclog.Fmt("%v", user))
 	query := "insert into users (id, email, username, password, tokenhash, createdat, updatedat) values ($1, $2, $3, $4, $5, $6, $7)"
-	_, err := repo.db.ExecContext(ctx, query, user.ID, user.Email, user.Username, user.Password, user.TokenHash, user.CreatedAt, user.UpdatedAt)
+	_, err = repo.db.ExecContext(ctx, query, user.ID, user.Email, user.Username, user.Password, user.TokenHash, user.CreatedAt, user.UpdatedAt)
 	return err
 }
 

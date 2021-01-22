@@ -3,6 +3,7 @@ package yoorquezttransport
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"google.golang.org/grpc"
@@ -165,7 +166,14 @@ func NewGRPCClient(conn *grpc.ClientConn, otTracer stdopentracing.Tracer, zipkin
 // gRPC sum request to a user-domain sum request. Primarily useful in a server.
 func decodeGRPCSignupRequest(_ context.Context, grpcReq interface{}) (interface{}, error) {
 	req := grpcReq.(*pb.SignupRequest)
-	return yoorqueztendpoint.SignupRequest{A: int(req.A), B: int(req.B)}, nil
+	return yoorqueztendpoint.SignupRequest{
+		ID: req.ID,
+		Email: req.Email,
+		Password: req.Password,
+		Username: req.Username,
+		TokenHash: req.TokenHash,
+		IsVerified: req.IsVerified,
+	}, nil
 }
 
 // decodeGRPCConcatRequest is a transport/grpc.DecodeRequestFunc that converts a
@@ -180,7 +188,12 @@ func decodeGRPCConcatRequest(_ context.Context, grpcReq interface{}) (interface{
 // gRPC sum reply to a user-domain sum response. Primarily useful in a client.
 func decodeGRPCSumResponse(_ context.Context, grpcReply interface{}) (interface{}, error) {
 	reply := grpcReply.(*pb.SignupReply)
-	return yoorqueztendpoint.SignupResponse{V: int(reply.V), Err: str2err(reply.Err)}, nil
+	return yoorqueztendpoint.SignupResponse{
+		Status: reply.Status,
+		Message: reply.Message,
+		Data: reply.Data,
+		Err: str2err(reply.Err),
+	}, nil
 }
 
 // decodeGRPCConcatResponse is a transport/grpc.DecodeResponseFunc that converts
@@ -195,7 +208,12 @@ func decodeGRPCConcatResponse(_ context.Context, grpcReply interface{}) (interfa
 // user-domain sum response to a gRPC sum reply. Primarily useful in a server.
 func encodeGRPCSumResponse(_ context.Context, response interface{}) (interface{}, error) {
 	resp := response.(yoorqueztendpoint.SignupResponse)
-	return &pb.SignupReply{V: int64(resp.V), Err: err2str(resp.Err)}, nil
+	return &pb.SignupReply{
+		Status: resp.Status,
+		Message: resp.Message,
+		Data: fmt.Sprintf("%v", resp.Data),
+		Err: resp.Err.Error(),
+	}, nil
 }
 
 // encodeGRPCConcatResponse is a transport/grpc.EncodeResponseFunc that converts
@@ -210,7 +228,14 @@ func encodeGRPCConcatResponse(_ context.Context, response interface{}) (interfac
 // user-domain sum request to a gRPC sum request. Primarily useful in a client.
 func encodeGRPCSignupRequest(_ context.Context, request interface{}) (interface{}, error) {
 	req := request.(yoorqueztendpoint.SignupRequest)
-	return &pb.SignupRequest{A: int64(req.A), B: int64(req.B)}, nil
+	return &pb.SignupRequest{
+		ID: req.ID,
+		Email: req.Email,
+		Password: req.Password,
+		Username: req.Username,
+		TokenHash: req.TokenHash,
+		IsVerified: req.IsVerified,
+	}, nil
 }
 
 // encodeGRPCConcatRequest is a transport/grpc.EncodeRequestFunc that converts a

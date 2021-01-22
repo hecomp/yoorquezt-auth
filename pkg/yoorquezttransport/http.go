@@ -189,7 +189,7 @@ var (
 )
 
 // decodeHTTPSignupRequest is a transport/http.DecodeRequestFunc that decodes a
-// JSON-encoded sum request from the HTTP request body. Primarily useful in a
+// JSON-encoded signup request from the HTTP request body. Primarily useful in a
 // server.
 func decodeHTTPSignupRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	var user data.User

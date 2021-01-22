@@ -106,7 +106,7 @@ func (auth *AuthService) Signup(_ context.Context, user *data.User) error {
 
 
 func (auth *AuthService) StoreVerificationData(_ context.Context, verificationData *data.VerificationData) error {
-	err := auth.StoreVerificationData(context.Background(), verificationData)
+	err := auth.repo.StoreVerificationData(context.Background(), verificationData)
 	if err != nil {
 		auth.logger.Log("unable to store mail verification data", "error", err)
 		return err

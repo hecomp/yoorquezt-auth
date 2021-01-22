@@ -75,9 +75,10 @@ func main() {
 	}
 
 	var db *sqlx.DB
+	var err error
 	{
 		// create a new connection to the postgres db store
-		db, err := yoorqueztrepository.NewConnection(configs, logger)
+		db, err = yoorqueztrepository.NewConnection(configs, logger)
 		if err != nil {
 			logger.Log("unable to connect to db", "error", err)
 			panic(err)

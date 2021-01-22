@@ -8,6 +8,7 @@ require (
 	github.com/go-kit/kit v0.10.0
 	github.com/go-playground/validator/v10 v10.4.1
 	github.com/golang/protobuf v1.4.3
+	github.com/google/uuid v1.1.2
 	github.com/hashicorp/go-hclog v0.15.0
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/leodido/go-urn v1.2.1 // indirect

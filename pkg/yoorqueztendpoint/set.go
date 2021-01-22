@@ -1,4 +1,5 @@
 package yoorqueztendpoint
+
 import (
 	"context"
 	"fmt"
@@ -36,7 +37,7 @@ type Set struct {
 func New(svc yoorqueztservice.Authentication, mailSvc yoorqueztservice.MailService, logger log.Logger, conf *utils.Configurations, validator *data.Validation, duration metrics.Histogram, otTracer stdopentracing.Tracer, zipkinTracer *stdzipkin.Tracer) Set {
 	var signupEndpoint endpoint.Endpoint
 	{
-		signupEndpoint = MakeSignupEndpoint(svc, mailSvc, conf, validator)
+		signupEndpoint = MakeSignupEndpoint(svc, mailSvc, conf, validator, logger)
 		// Signup is limited to 1 request per second with burst of 1 request.
 		// Note, rate is defined as a time interval between requests.
 		signupEndpoint = ratelimit.NewErroringLimiter(rate.NewLimiter(rate.Every(time.Second), 1))(signupEndpoint)
@@ -123,13 +124,20 @@ func (s Set) Concat(ctx context.Context, a, b string) (string, error) {
 }
 
 // MakeSignupEndpoint constructs a Signup endpoint wrapping the service.
-func MakeSignupEndpoint(s yoorqueztservice.Authentication, mailSvc yoorqueztservice.MailService, configs *utils.Configurations, validator *data.Validation) endpoint.Endpoint {
+func MakeSignupEndpoint(s yoorqueztservice.Authentication, mailSvc yoorqueztservice.MailService, configs *utils.Configurations, validator *data.Validation, logger log.Logger) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		user := request.(data.User)
 
+		// Validate user
+		errs := validator.Validate(user)
+		if len(errs) != 0 {
+			logger.Log("validation of user json failed", "error", errs)
+			return SignupResponse{Status: false, Message: strings.Join(errs.Errors(), ","), Err: err}, nil
+		}
+
 		hashedPass, err := s.HashPassword(user.Password)
 		if err != nil {
-			return GenericResponse{Status: false, Message: UserCreationFailed}, nil
+			return SignupResponse{Status: false, Message: UserCreationFailed}, nil
 		}
 		user.Password = hashedPass
 		user.TokenHash = utils.GenerateRandomString(15)
@@ -138,9 +146,11 @@ func MakeSignupEndpoint(s yoorqueztservice.Authentication, mailSvc yoorqueztserv
 		if err != nil {
 			errMsg := err.Error()
 			if strings.Contains(errMsg, PgDuplicateKeyMsg) {
-				return GenericResponse{Status: false, Message: ErrUserAlreadyExists}, nil
+				logger.Log(ErrUserAlreadyExists, "error", err)
+				return SignupResponse{Status: false, Message: ErrUserAlreadyExists}, nil
 			} else {
-				return GenericResponse{Status: false, Message: UserCreationFailed}, nil
+				logger.Log(UserCreationFailed, "error", err)
+				return SignupResponse{Status: false, Message: UserCreationFailed}, nil
 			}
 		}
 
@@ -157,7 +167,7 @@ func MakeSignupEndpoint(s yoorqueztservice.Authentication, mailSvc yoorqueztserv
 		mailReq := mailSvc.NewMail(from, to, subject, mailType, mailData)
 		err = mailSvc.SendMail(mailReq)
 		if err != nil {
-			return GenericResponse{Status: false, Message: UserCreationFailed}, nil
+			return SignupResponse{Status: false, Message: UserCreationFailed, Err: err}, err
 		}
 
 		verificationData := &data.VerificationData{
@@ -168,10 +178,10 @@ func MakeSignupEndpoint(s yoorqueztservice.Authentication, mailSvc yoorqueztserv
 		}
 		err = s.StoreVerificationData(ctx, verificationData)
 		if err != nil {
-			return GenericResponse{Status: false, Message: UserCreationFailed}, nil
+			return SignupResponse{Status: false, Message: UserCreationFailed, Err: err}, err
 		}
 
-		return GenericResponse{Status: true, Message: UserCreationSuccess}, nil
+		return SignupResponse{Status: true, Message: UserCreationSuccess}, nil
 	}
 }
 
@@ -189,13 +199,6 @@ var (
 	_ endpoint.Failer = SignupResponse{}
 	_ endpoint.Failer = ConcatResponse{}
 )
-
-// GenericResponse is the format of our response
-type GenericResponse struct {
-	Status  bool        `json:"status"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data"`
-}
 
 // ValidationError is a collection of validation error messages
 type ValidationError struct {
@@ -237,9 +240,22 @@ var UserCreationSuccess = fmt.Sprintf("Please verify your email account using th
 var PgDuplicateKeyMsg = "duplicate key value violates unique constraint"
 var PgNoRowsMsg = "no rows in result set"
 
+type SignupRequest struct {
+	ID         string
+	Email      string
+	Password   string
+	Username   string
+	TokenHash  string
+	IsVerified bool
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+}
+
 // SignupResponse collects the response values for the Signup method.
 type SignupResponse struct {
+	Status  bool        `json:"status"`
 	Message   string   `json:",omitempty"`
+	Data    interface{} `json:"data"`
 	Err       error `json:"err,omitempty"` // should be intercepted by Failed/errorEncoder
 }
 
