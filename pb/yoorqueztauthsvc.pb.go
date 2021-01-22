@@ -328,14 +328,14 @@ var file_yoorqueztauthsvc_proto_rawDesc = []byte{
 	0x12, 0x0c, 0x0a, 0x01, 0x62, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x01, 0x62, 0x22, 0x2d,
 	0x0a, 0x0b, 0x43, 0x6f, 0x6e, 0x63, 0x61, 0x74, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x12, 0x0c, 0x0a,
 	0x01, 0x76, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x01, 0x76, 0x12, 0x10, 0x0a, 0x03, 0x65,
-	0x72, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x65, 0x72, 0x72, 0x32, 0x65, 0x0a,
-	0x03, 0x41, 0x64, 0x64, 0x12, 0x2e, 0x0a, 0x06, 0x53, 0x69, 0x67, 0x6e, 0x75, 0x70, 0x12, 0x11,
-	0x2e, 0x70, 0x62, 0x2e, 0x53, 0x69, 0x67, 0x6e, 0x75, 0x70, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
-	0x74, 0x1a, 0x0f, 0x2e, 0x70, 0x62, 0x2e, 0x53, 0x69, 0x67, 0x6e, 0x75, 0x70, 0x52, 0x65, 0x70,
-	0x6c, 0x79, 0x22, 0x00, 0x12, 0x2e, 0x0a, 0x06, 0x43, 0x6f, 0x6e, 0x63, 0x61, 0x74, 0x12, 0x11,
-	0x2e, 0x70, 0x62, 0x2e, 0x43, 0x6f, 0x6e, 0x63, 0x61, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
-	0x74, 0x1a, 0x0f, 0x2e, 0x70, 0x62, 0x2e, 0x43, 0x6f, 0x6e, 0x63, 0x61, 0x74, 0x52, 0x65, 0x70,
-	0x6c, 0x79, 0x22, 0x00, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x72, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x65, 0x72, 0x72, 0x32, 0x66, 0x0a,
+	0x04, 0x41, 0x75, 0x74, 0x68, 0x12, 0x2e, 0x0a, 0x06, 0x53, 0x69, 0x67, 0x6e, 0x75, 0x70, 0x12,
+	0x11, 0x2e, 0x70, 0x62, 0x2e, 0x53, 0x69, 0x67, 0x6e, 0x75, 0x70, 0x52, 0x65, 0x71, 0x75, 0x65,
+	0x73, 0x74, 0x1a, 0x0f, 0x2e, 0x70, 0x62, 0x2e, 0x53, 0x69, 0x67, 0x6e, 0x75, 0x70, 0x52, 0x65,
+	0x70, 0x6c, 0x79, 0x22, 0x00, 0x12, 0x2e, 0x0a, 0x06, 0x43, 0x6f, 0x6e, 0x63, 0x61, 0x74, 0x12,
+	0x11, 0x2e, 0x70, 0x62, 0x2e, 0x43, 0x6f, 0x6e, 0x63, 0x61, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65,
+	0x73, 0x74, 0x1a, 0x0f, 0x2e, 0x70, 0x62, 0x2e, 0x43, 0x6f, 0x6e, 0x63, 0x61, 0x74, 0x52, 0x65,
+	0x70, 0x6c, 0x79, 0x22, 0x00, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -358,10 +358,10 @@ var file_yoorqueztauthsvc_proto_goTypes = []interface{}{
 	(*ConcatReply)(nil),   // 3: pb.ConcatReply
 }
 var file_yoorqueztauthsvc_proto_depIdxs = []int32{
-	0, // 0: pb.Add.Signup:input_type -> pb.SignupRequest
-	2, // 1: pb.Add.Concat:input_type -> pb.ConcatRequest
-	1, // 2: pb.Add.Signup:output_type -> pb.SignupReply
-	3, // 3: pb.Add.Concat:output_type -> pb.ConcatReply
+	0, // 0: pb.Auth.Signup:input_type -> pb.SignupRequest
+	2, // 1: pb.Auth.Concat:input_type -> pb.ConcatRequest
+	1, // 2: pb.Auth.Signup:output_type -> pb.SignupReply
+	3, // 3: pb.Auth.Concat:output_type -> pb.ConcatReply
 	2, // [2:4] is the sub-list for method output_type
 	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
@@ -452,112 +452,112 @@ var _ grpc.ClientConnInterface
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion6
 
-// AddClient is the client API for Add service.
+// AuthClient is the client API for Auth service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type AddClient interface {
+type AuthClient interface {
 	// Sums two integers.
 	Signup(ctx context.Context, in *SignupRequest, opts ...grpc.CallOption) (*SignupReply, error)
 	// Concatenates two strings
 	Concat(ctx context.Context, in *ConcatRequest, opts ...grpc.CallOption) (*ConcatReply, error)
 }
 
-type addClient struct {
+type authClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewAddClient(cc grpc.ClientConnInterface) AddClient {
-	return &addClient{cc}
+func NewAuthClient(cc grpc.ClientConnInterface) AuthClient {
+	return &authClient{cc}
 }
 
-func (c *addClient) Signup(ctx context.Context, in *SignupRequest, opts ...grpc.CallOption) (*SignupReply, error) {
+func (c *authClient) Signup(ctx context.Context, in *SignupRequest, opts ...grpc.CallOption) (*SignupReply, error) {
 	out := new(SignupReply)
-	err := c.cc.Invoke(ctx, "/pb.Add/Signup", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/pb.Auth/Signup", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *addClient) Concat(ctx context.Context, in *ConcatRequest, opts ...grpc.CallOption) (*ConcatReply, error) {
+func (c *authClient) Concat(ctx context.Context, in *ConcatRequest, opts ...grpc.CallOption) (*ConcatReply, error) {
 	out := new(ConcatReply)
-	err := c.cc.Invoke(ctx, "/pb.Add/Concat", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/pb.Auth/Concat", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// AddServer is the server API for Add service.
-type AddServer interface {
+// AuthServer is the server API for Auth service.
+type AuthServer interface {
 	// Sums two integers.
 	Signup(context.Context, *SignupRequest) (*SignupReply, error)
 	// Concatenates two strings
 	Concat(context.Context, *ConcatRequest) (*ConcatReply, error)
 }
 
-// UnimplementedAddServer can be embedded to have forward compatible implementations.
-type UnimplementedAddServer struct {
+// UnimplementedAuthServer can be embedded to have forward compatible implementations.
+type UnimplementedAuthServer struct {
 }
 
-func (*UnimplementedAddServer) Signup(context.Context, *SignupRequest) (*SignupReply, error) {
+func (*UnimplementedAuthServer) Signup(context.Context, *SignupRequest) (*SignupReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Signup not implemented")
 }
-func (*UnimplementedAddServer) Concat(context.Context, *ConcatRequest) (*ConcatReply, error) {
+func (*UnimplementedAuthServer) Concat(context.Context, *ConcatRequest) (*ConcatReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Concat not implemented")
 }
 
-func RegisterAddServer(s *grpc.Server, srv AddServer) {
-	s.RegisterService(&_Add_serviceDesc, srv)
+func RegisterAuthServer(s *grpc.Server, srv AuthServer) {
+	s.RegisterService(&_Auth_serviceDesc, srv)
 }
 
-func _Add_Signup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Auth_Signup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SignupRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AddServer).Signup(ctx, in)
+		return srv.(AuthServer).Signup(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/pb.Add/Signup",
+		FullMethod: "/pb.Auth/Signup",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AddServer).Signup(ctx, req.(*SignupRequest))
+		return srv.(AuthServer).Signup(ctx, req.(*SignupRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Add_Concat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Auth_Concat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ConcatRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AddServer).Concat(ctx, in)
+		return srv.(AuthServer).Concat(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/pb.Add/Concat",
+		FullMethod: "/pb.Auth/Concat",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AddServer).Concat(ctx, req.(*ConcatRequest))
+		return srv.(AuthServer).Concat(ctx, req.(*ConcatRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-var _Add_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "pb.Add",
-	HandlerType: (*AddServer)(nil),
+var _Auth_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "pb.Auth",
+	HandlerType: (*AuthServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "Signup",
-			Handler:    _Add_Signup_Handler,
+			Handler:    _Auth_Signup_Handler,
 		},
 		{
 			MethodName: "Concat",
-			Handler:    _Add_Concat_Handler,
+			Handler:    _Auth_Concat_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
