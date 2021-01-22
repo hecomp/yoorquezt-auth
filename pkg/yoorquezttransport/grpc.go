@@ -113,23 +113,23 @@ func NewGRPCClient(conn *grpc.ClientConn, otTracer stdopentracing.Tracer, zipkin
 	// endpoint.Endpoint) that gets wrapped with various middlewares. If you
 	// made your own client library, you'd do this work there, so your server
 	// could rely on a consistent set of client behavior.
-	var sumEndpoint endpoint.Endpoint
+	var signupEndpoint endpoint.Endpoint
 	{
-		sumEndpoint = grpctransport.NewClient(
+		signupEndpoint = grpctransport.NewClient(
 			conn,
-			"pb.Add",
+			"pb.Auth",
 			"Signup",
 			encodeGRPCSignupRequest,
 			decodeGRPCSumResponse,
 			pb.SignupReply{},
 			append(options, grpctransport.ClientBefore(opentracing.ContextToGRPC(otTracer, logger)))...,
 		).Endpoint()
-		sumEndpoint = opentracing.TraceClient(otTracer, "Signup")(sumEndpoint)
-		sumEndpoint = limiter(sumEndpoint)
-		sumEndpoint = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{
+		signupEndpoint = opentracing.TraceClient(otTracer, "Signup")(signupEndpoint)
+		signupEndpoint = limiter(signupEndpoint)
+		signupEndpoint = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{
 			Name:    "Signup",
 			Timeout: 30 * time.Second,
-		}))(sumEndpoint)
+		}))(signupEndpoint)
 	}
 
 	// The Concat endpoint is the same thing, with slightly different
@@ -138,7 +138,7 @@ func NewGRPCClient(conn *grpc.ClientConn, otTracer stdopentracing.Tracer, zipkin
 	{
 		concatEndpoint = grpctransport.NewClient(
 			conn,
-			"pb.Add",
+			"pb.Auth",
 			"Concat",
 			encodeGRPCConcatRequest,
 			decodeGRPCConcatResponse,
@@ -157,7 +157,7 @@ func NewGRPCClient(conn *grpc.ClientConn, otTracer stdopentracing.Tracer, zipkin
 	// endpoint.Set implementing the Authentication methods. That's just a simple bit
 	// of glue code.
 	return yoorqueztendpoint.Set{
-		SignupEndpoint: sumEndpoint,
+		SignupEndpoint: signupEndpoint,
 		ConcatEndpoint: concatEndpoint,
 	}
 }

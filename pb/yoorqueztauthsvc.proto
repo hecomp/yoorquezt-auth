@@ -3,7 +3,7 @@ syntax = "proto3";
 package pb;
 
 // The Add service definition.
-service Add {
+service Auth {
   // Sums two integers.
   rpc Signup (SignupRequest) returns (SignupReply) {}
 
