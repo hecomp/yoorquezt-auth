@@ -39,6 +39,7 @@ func NewGRPCServer(endpoints yoorqueztendpoint.Set, otTracer stdopentracing.Trac
 	}
 
 	if zipkinTracer != nil {
+
 		// Zipkin GRPC Server Trace can either be instantiated per gRPC method with a
 		// provided operation name or a global tracing service can be instantiated
 		// without an operation name and fed to each Go kit gRPC server as a
