@@ -28,6 +28,9 @@ import (
 	"github.com/go-kit/kit/metrics/prometheus"
 	kitgrpc "github.com/go-kit/kit/transport/grpc"
 
+	"github.com/go-kit/kit/sd/consul"
+	"github.com/hashicorp/consul/api"
+
 	"github.com/hecomp/yoorquezt-auth/internal/data"
 	"github.com/hecomp/yoorquezt-auth/internal/utils"
 	yoorqueztpb "github.com/hecomp/yoorquezt-auth/pb"
@@ -50,6 +53,9 @@ func main() {
 		zipkinBridge   = fs.Bool("zipkin-ot-bridge", false, "Use Zipkin OpenTracing bridge instead of native implementation")
 		lightstepToken = fs.String("lightstep-token", "", "Enable LightStep tracing via a LightStep access token")
 		appdashAddr    = fs.String("appdash-addr", "", "Enable Appdash tracing via an Appdash server host:port")
+		consulServer   = fs.String("consul.addr", ":8500", "consulServer")
+		serviceName    = fs.String("SERVICE", "yoorqueztauthsvc", "yoorqueztauthsvc")
+		prefix         = fs.String("PREFIX", "/yoorqueztauthsvc", "prefix yoorqueztauthsvc")
 	)
 	fs.Usage = usageFor(fs, os.Args[0]+" [flags]")
 	fs.Parse(os.Args[1:])
@@ -61,6 +67,32 @@ func main() {
 		logger = log.With(logger, "ts", log.DefaultTimestampUTC)
 		logger = log.With(logger, "caller", log.DefaultCaller)
 	}
+
+	// Specify the information of an instance.
+	asr := api.AgentServiceRegistration{
+		// Every service instance must have an unique ID.
+		ID:      fmt.Sprintf("%v%v/%v", "localhost", httpAddr, prefix),
+		Name:    *serviceName,
+		// These two values are the location of an instance.
+		Address: "localhost",
+		Port:    8081,
+	}
+	consulConfig := api.DefaultConfig()
+	// We can get the address of consul server from environment variale or a config file.
+	if len(*consulServer) > 0 {
+		consulConfig.Address = *consulServer
+	}
+	consulClient, errs := api.NewClient(consulConfig)
+	if errs != nil {
+		logger.Log("errs", errs)
+		os.Exit(1)
+	}
+	sdClient := consul.NewClient(consulClient)
+	registar := consul.NewRegistrar(sdClient, &asr, logger)
+	registar.Register()
+	// According to the official doc of Go kit,
+	// it's important to call registar.Deregister() before the program exits.
+	defer registar.Deregister()
 
 	var configs *utils.Configurations
 	{
