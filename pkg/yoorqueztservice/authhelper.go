@@ -1,4 +1,4 @@
-package yoorqueztendpoint
+package yoorqueztservice
 
 import (
 	"context"
@@ -17,15 +17,22 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/hecomp/yoorquezt-auth/internal/data"
-	"github.com/hecomp/yoorquezt-auth/pkg/yoorqueztservice"
 )
 
 type IAuthHelper interface {
 	StoreVerificationData(ctx context.Context, verificationData *data.VerificationData) error
 	HashPassword(password string) (string, error)
 	ValidateUser(user *data.User) data.ValidationErrors
-	SenMail(from string, to []string, subject string, mailType yoorqueztservice.MailType, mailData *yoorqueztservice.MailData) error
-	BuildVerificationData(user *data.User, mailData *yoorqueztservice.MailData) *data.VerificationData
+	SenMail(from string, to []string, subject string, mailType MailType, mailData *MailData) error
+	BuildVerificationData(user *data.User, mailData *MailData) *data.VerificationData
+	Authenticate(reqUser *data.User, user *data.User) bool
+	GenerateAccessToken(user *data.User) (string, error)
+	GenerateRefreshToken(user *data.User) (string, error)
+	ErrorMsgs(message string, s string, err error)
+	ErrorMsg(message string, err error)
+	Error(message string)
+	Log(message string)
+	Debug(msg1, msg2, msg3, msg4, msg5 string)
 }
 
 // RefreshTokenCustomClaims specifies the claims for refresh token
@@ -45,13 +52,13 @@ type AccessTokenCustomClaims struct {
 
 type AuthHelper struct {
 	logger      log.Logger
-	mailService yoorqueztservice.MailService
+	mailService MailService
 	validator   *data.Validation
-	repo *yoorqueztrepository.PostgresRepository
-	configs *utils.Configurations
+	repo        *yoorqueztrepository.PostgresRepository
+	configs     *utils.Configurations
 }
 
-func NewHelper(logger log.Logger, mailService yoorqueztservice.MailService, validator *data.Validation, repository *yoorqueztrepository.PostgresRepository, configs *utils.Configurations) *AuthHelper {
+func NewHelper(logger log.Logger, mailService MailService, validator *data.Validation, repository *yoorqueztrepository.PostgresRepository, configs *utils.Configurations) *AuthHelper {
 	return &AuthHelper{
 		logger: logger,
 		mailService: mailService,
@@ -93,7 +100,7 @@ func (auth *AuthHelper) GenerateRefreshToken(user *data.User) (string, error) {
 		cusKey,
 		tokenType,
 		jwt.StandardClaims{
-			Issuer: "bookite.auth.service",
+			Issuer: "yoorquezt.auth.service",
 		},
 	}
 
@@ -125,7 +132,7 @@ func (auth *AuthHelper) GenerateAccessToken(user *data.User) (string, error) {
 		tokenType,
 		jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(time.Minute * time.Duration(auth.configs.JwtExpiration)).Unix(),
-			Issuer:    "bookite.auth.service",
+			Issuer:    "yoorquezt.auth.service",
 		},
 	}
 
@@ -251,7 +258,7 @@ func (auth *AuthHelper) ValidateUser(user *data.User) data.ValidationErrors {
 	return err
 }
 
-func (auth *AuthHelper) SenMail(from string, to []string, subject string, mailType yoorqueztservice.MailType, mailData *yoorqueztservice.MailData) error {
+func (auth *AuthHelper) SenMail(from string, to []string, subject string, mailType MailType, mailData *MailData) error {
 	mailReq := auth.mailService.NewMail(from, to, subject, mailType, mailData)
 	err := auth.mailService.SendMail(mailReq)
 	if err != nil {
@@ -261,11 +268,31 @@ func (auth *AuthHelper) SenMail(from string, to []string, subject string, mailTy
 	return nil
 }
 
-func (auth *AuthHelper) BuildVerificationData(user *data.User, mailData *yoorqueztservice.MailData) *data.VerificationData {
+func (auth *AuthHelper) BuildVerificationData(user *data.User, mailData *MailData) *data.VerificationData {
 	return &data.VerificationData{
 		Email: user.Email,
 		Code : mailData.Code,
 		Type : data.MailConfirmation,
 		ExpiresAt: time.Now().Add(time.Hour * time.Duration(auth.configs.MailVerifCodeExpiration)),
 	}
+}
+
+func (auth *AuthHelper) ErrorMsg(message string, err error) {
+	auth.logger.Log(message, err)
+}
+
+func (auth *AuthHelper) ErrorMsgs(message string, msg string, err error) {
+	auth.logger.Log(message, msg, err)
+}
+
+func (auth *AuthHelper) Error(message string)  {
+	auth.logger.Log(message)
+}
+
+func (auth *AuthHelper) Log(message string)  {
+	auth.logger.Log(message)
+}
+
+func (auth *AuthHelper) Debug(msg1, msg2, msg3, msg4, msg5 string)  {
+	auth.logger.Log(msg1, msg2, msg3, msg4, msg5)
 }

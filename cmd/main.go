@@ -170,14 +170,14 @@ func main() {
 		ints = prometheus.NewCounterFrom(stdprometheus.CounterOpts{
 			Namespace: "example",
 			Subsystem: "yoorqueztauthsvc",
-			Name:      "integers_summed",
-			Help:      "Total count of integers summed via the Signup method.",
+			Name:      "signing_users",
+			Help:      "Singing user  via the Signup method.",
 		}, []string{})
 		chars = prometheus.NewCounterFrom(stdprometheus.CounterOpts{
 			Namespace: "example",
 			Subsystem: "yoorqueztauthsvc",
-			Name:      "characters_concatenated",
-			Help:      "Total count of characters concatenated via the Concat method.",
+			Name:      "logging_users",
+			Help:      "Logging user via the Login method.",
 		}, []string{})
 	}
 	var duration metrics.Histogram

@@ -60,7 +60,7 @@ func NewGRPCServer(endpoints yoorqueztendpoint.Set, otTracer stdopentracing.Trac
 			append(options, grpctransport.ServerBefore(opentracing.GRPCToContext(otTracer, "Signup", logger)))...,
 		),
 		concat: grpctransport.NewServer(
-			endpoints.ConcatEndpoint,
+			endpoints.LoginEndpoint,
 			decodeGRPCConcatRequest,
 			encodeGRPCConcatResponse,
 			append(options, grpctransport.ServerBefore(opentracing.GRPCToContext(otTracer, "Concat", logger)))...,
@@ -159,7 +159,7 @@ func NewGRPCClient(conn *grpc.ClientConn, otTracer stdopentracing.Tracer, zipkin
 	// of glue code.
 	return yoorqueztendpoint.Set{
 		SignupEndpoint: signupEndpoint,
-		ConcatEndpoint: concatEndpoint,
+		LoginEndpoint: concatEndpoint,
 	}
 }
 
@@ -178,11 +178,17 @@ func decodeGRPCSignupRequest(_ context.Context, grpcReq interface{}) (interface{
 }
 
 // decodeGRPCConcatRequest is a transport/grpc.DecodeRequestFunc that converts a
-// gRPC concat request to a user-domain concat request. Primarily useful in a
-// server.
+// gRPC sum request to a user-domain sum request. Primarily useful in a server.
 func decodeGRPCConcatRequest(_ context.Context, grpcReq interface{}) (interface{}, error) {
-	req := grpcReq.(*pb.ConcatRequest)
-	return yoorqueztendpoint.ConcatRequest{A: req.A, B: req.B}, nil
+	req := grpcReq.(*pb.SignupRequest)
+	return yoorqueztendpoint.SignupRequest{
+		ID: req.ID,
+		Email: req.Email,
+		Password: req.Password,
+		Username: req.Username,
+		TokenHash: req.TokenHash,
+		IsVerified: req.IsVerified,
+	}, nil
 }
 
 // decodeGRPCSumResponse is a transport/grpc.DecodeResponseFunc that converts a
@@ -197,12 +203,16 @@ func decodeGRPCSumResponse(_ context.Context, grpcReply interface{}) (interface{
 	}, nil
 }
 
-// decodeGRPCConcatResponse is a transport/grpc.DecodeResponseFunc that converts
-// a gRPC concat reply to a user-domain concat response. Primarily useful in a
-// client.
+// decodeGRPCConcatResponse is a transport/grpc.DecodeResponseFunc that converts a
+// gRPC sum reply to a user-domain sum response. Primarily useful in a client.
 func decodeGRPCConcatResponse(_ context.Context, grpcReply interface{}) (interface{}, error) {
-	reply := grpcReply.(*pb.ConcatReply)
-	return yoorqueztendpoint.ConcatResponse{V: reply.V, Err: str2err(reply.Err)}, nil
+	reply := grpcReply.(*pb.SignupReply)
+	return yoorqueztendpoint.SignupResponse{
+		Status: reply.Status,
+		Message: reply.Message,
+		Data: reply.Data,
+		Err: str2err(reply.Err),
+	}, nil
 }
 
 // encodeGRPCSumResponse is a transport/grpc.EncodeResponseFunc that converts a
@@ -217,12 +227,16 @@ func encodeGRPCSumResponse(_ context.Context, response interface{}) (interface{}
 	}, nil
 }
 
-// encodeGRPCConcatResponse is a transport/grpc.EncodeResponseFunc that converts
-// a user-domain concat response to a gRPC concat reply. Primarily useful in a
-// server.
+// encodeGRPCSumResponse is a transport/grpc.EncodeResponseFunc that converts a
+// user-domain sum response to a gRPC sum reply. Primarily useful in a server.
 func encodeGRPCConcatResponse(_ context.Context, response interface{}) (interface{}, error) {
-	resp := response.(yoorqueztendpoint.ConcatResponse)
-	return &pb.ConcatReply{V: resp.V, Err: err2str(resp.Err)}, nil
+	resp := response.(yoorqueztendpoint.SignupResponse)
+	return &pb.SignupReply{
+		Status: resp.Status,
+		Message: resp.Message,
+		Data: fmt.Sprintf("%v", resp.Data),
+		Err: resp.Err.Error(),
+	}, nil
 }
 
 // encodeGRPCSignupRequest is a transport/grpc.EncodeRequestFunc that converts a
@@ -240,11 +254,17 @@ func encodeGRPCSignupRequest(_ context.Context, request interface{}) (interface{
 }
 
 // encodeGRPCConcatRequest is a transport/grpc.EncodeRequestFunc that converts a
-// user-domain concat request to a gRPC concat request. Primarily useful in a
-// client.
+// user-domain sum request to a gRPC sum request. Primarily useful in a client.
 func encodeGRPCConcatRequest(_ context.Context, request interface{}) (interface{}, error) {
-	req := request.(yoorqueztendpoint.ConcatRequest)
-	return &pb.ConcatRequest{A: req.A, B: req.B}, nil
+	req := request.(yoorqueztendpoint.SignupRequest)
+	return &pb.SignupRequest{
+		ID: req.ID,
+		Email: req.Email,
+		Password: req.Password,
+		Username: req.Username,
+		TokenHash: req.TokenHash,
+		IsVerified: req.IsVerified,
+	}, nil
 }
 
 // These annoying helper functions are required to translate Go error types to

@@ -48,10 +48,11 @@ func NewConfigurations(logger log.Logger) *Configurations {
 	viper.SetDefault("REFRESH_TOKEN_PRIVATE_KEY_PATH", "./refresh-private.pem")
 	viper.SetDefault("REFRESH_TOKEN_PUBLIC_KEY_PATH", "./refresh-public.pem")
 	viper.SetDefault("JWT_EXPIRATION", 30)
+	viper.SetDefault("SENDGRID_API_KEY", "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")
 	viper.SetDefault("MAIL_VERIFICATION_CODE_EXPIRATION", 24)
 	viper.SetDefault("PASSWORD_RESET_CODE_EXPIRATION", 15)
-	viper.SetDefault("MAIL_VERIFICATION_TEMPLATE_ID", "d-5ecbea6e38764af3b703daf03f139b48")
-	viper.SetDefault("PASSWORD_RESET_TEMPLATE_ID", "d-3fc222d11809441abaa8ed459bb44319")
+	viper.SetDefault("MAIL_VERIFICATION_TEMPLATE_ID", "d-5fe308da842e40dcb61425b38735db72")
+	viper.SetDefault("PASSWORD_RESET_TEMPLATE_ID", "d-d2d23b1b2c9342319d6dda8736794fd3")
 
 	configs := &Configurations{
 		ServerAddress: viper.GetString("SERVER_ADDRESS"),

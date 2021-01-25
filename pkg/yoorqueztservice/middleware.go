@@ -65,11 +65,11 @@ func (mw loggingMiddleware) Signup(ctx context.Context, user *data.User) (err er
 	return mw.next.Signup(ctx, user)
 }
 
-func (mw loggingMiddleware) Concat(ctx context.Context, a, b string) (v string, err error) {
+func (mw loggingMiddleware) Login(ctx context.Context, user *data.User) (d *data.User, err error) {
 	defer func() {
-		mw.logger.Log("method", "Concat", "a", a, "b", b, "v", v, "err", err)
+		mw.logger.Log("method", "Login", "ID", user.ID, "Email", user.Email, "err", err)
 	}()
-	return mw.next.Concat(ctx, a, b)
+	return mw.next.Login(ctx, user)
 }
 
 // InstrumentingMiddleware returns a service middleware that instruments
@@ -91,16 +91,16 @@ type instrumentingMiddleware struct {
 	next  Authentication
 }
 
+func (mw instrumentingMiddleware) Login(ctx context.Context, user *data.User) (*data.User, error) {
+	userReq, err := mw.next.Login(ctx, user)
+	mw.chars.Add(float64(len(user.ID)))
+	return userReq, err
+}
+
 func (mw instrumentingMiddleware) Signup(ctx context.Context, user *data.User) error {
 	err := mw.next.Signup(ctx, user)
 	mw.chars.Add(float64(len(user.ID)))
 	return err
-}
-
-func (mw instrumentingMiddleware) Concat(ctx context.Context, a, b string) (string, error) {
-	v, err := mw.next.Concat(ctx, a, b)
-	mw.chars.Add(float64(len(v)))
-	return v, err
 }
 
 // InstrumentingMailMiddleware returns a service middleware that instruments

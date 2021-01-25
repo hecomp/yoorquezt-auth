@@ -67,7 +67,7 @@ func (ms *SGMailService) CreateMail(mailReq *Mail) []byte {
 
 	m := mail.NewV3Mail()
 
-	from := mail.NewEmail("bookite", mailReq.from)
+	from := mail.NewEmail("yoorquezt", mailReq.from)
 	m.SetFrom(from)
 
 	if mailReq.mtype == MailConfirmation {

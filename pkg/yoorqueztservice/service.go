@@ -5,7 +5,6 @@ import (
 	"errors"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics"
-
 	"github.com/hecomp/yoorquezt-auth/internal/data"
 	"github.com/hecomp/yoorquezt-auth/internal/utils"
 	"github.com/hecomp/yoorquezt-auth/pkg/yoorqueztrepository"
@@ -14,7 +13,7 @@ import (
 // Authentication describes a service that adds things together.
 type Authentication interface {
 	Signup(ctx context.Context, user *data.User) error
-	Concat(ctx context.Context, a, b string) (string, error)
+	Login(ctx context.Context, user *data.User) (*data.User, error)
 }
 
 // New returns a basic Authentication with all of the expected middlewares wired in.
@@ -42,6 +41,8 @@ var (
 	ErrMaxSizeExceeded = errors.New("result exceeds maximum size")
 )
 
+var PgNoRowsMsg = "no rows in result set"
+
 // AuthService is the implementation of our Authentication
 type AuthService struct{
 	logger      log.Logger
@@ -64,6 +65,7 @@ const (
 	maxLen = 10
 )
 
+// Signup implements Authentication.
 func (auth *AuthService) Signup(_ context.Context, user *data.User) error {
 	err := auth.repo.Create(context.Background(), user)
 	if err != nil {
@@ -73,13 +75,15 @@ func (auth *AuthService) Signup(_ context.Context, user *data.User) error {
 	return nil
 }
 
-
-// Concat implements Authentication.
-func (auth AuthService) Concat(_ context.Context, a, b string) (string, error) {
-	if len(a)+len(b) > maxLen {
-		return "", ErrMaxSizeExceeded
+// Login implements Authentication.
+func (auth *AuthService) Login(_ context.Context, user *data.User) (*data.User, error)  {
+	user, err := auth.repo.GetUserByEmail(context.Background(), user.Email)
+	if err != nil {
+		auth.logger.Log("error fetching the user", "error", err)
+		return nil, err
 	}
-	return a + b, nil
+	return user, nil
 }
+
 
 
