@@ -35,20 +35,20 @@ func NewHTTPHandler(endpoints yoorqueztendpoint.Set, otTracer stdopentracing.Tra
 		options = append(options, zipkin.HTTPServerTrace(zipkinTracer))
 	}
 
-	m := http.NewServeMux()
-	m.Handle("/signup", httptransport.NewServer(
+	mux := http.NewServeMux()
+	mux.Handle("/signup", httptransport.NewServer(
 		endpoints.SignupEndpoint,
 		decodeHTTPSignupRequest,
 		encodeHTTPGenericResponse,
 		append(options, httptransport.ServerBefore(opentracing.HTTPToContext(otTracer, "Signup", logger)))...,
 	))
-	m.Handle("/login", httptransport.NewServer(
+	mux.Handle("/login", httptransport.NewServer(
 		endpoints.LoginEndpoint,
 		decodeHTTPLoginRequest,
 		encodeHTTPGenericResponse,
 		append(options, httptransport.ServerBefore(opentracing.HTTPToContext(otTracer, "Login", logger)))...,
 	))
-	return m
+	return mux
 }
 
 func errorEncoder(_ context.Context, err error, w http.ResponseWriter) {

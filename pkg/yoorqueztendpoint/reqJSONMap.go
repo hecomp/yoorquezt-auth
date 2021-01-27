@@ -13,8 +13,15 @@ type LoginResponse struct {
 	Status  bool        `json:"status"`
 	Message string   `json:",omitempty"`
 	Data    interface{} `json:"data"`
-	User    interface{} `json:"user"`
 	Err     error `json:"err,omitempty"` // should be intercepted by Failed/errorEncoder
+}
+
+// GenericResponse is the format of our response
+type GenericResponse struct {
+	Status  bool        `json:"status"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data"`
+	Err       error `json:"err,omitempty"`
 }
 
 // ValidationError is a collection of validation error messages

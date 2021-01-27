@@ -14,6 +14,7 @@ import (
 type Authentication interface {
 	Signup(ctx context.Context, user *data.User) error
 	Login(ctx context.Context, user *data.User) (*data.User, error)
+	VerifyMail(_ context.Context, verificationData *data.VerificationData) (*data.VerificationData, error)
 }
 
 // New returns a basic Authentication with all of the expected middlewares wired in.
@@ -83,6 +84,16 @@ func (auth *AuthService) Login(_ context.Context, user *data.User) (*data.User, 
 		return nil, err
 	}
 	return user, nil
+}
+
+// VerifyMail implements Authentication.
+func (auth *AuthService) VerifyMail(_ context.Context, verificationData *data.VerificationData) (*data.VerificationData, error)  {
+	actualVerificationData, err := auth.repo.GetVerificationData(context.Background(), verificationData.Email, verificationData.Type)
+	if err != nil {
+		auth.logger.Log("unable to fetch verification data", "error", err)
+		return nil, err
+	}
+	return actualVerificationData, nil
 }
 
 

@@ -32,6 +32,10 @@ type loggingMiddleware struct {
 	next   Authentication
 }
 
+func (mw loggingMiddleware) VerifyMail(_ context.Context, verificationData *data.VerificationData) (*data.VerificationData, error) {
+	panic("implement me")
+}
+
 type loggingMailMiddleware struct {
 	logger log.Logger
 	next   MailService
@@ -78,29 +82,34 @@ func (mw loggingMiddleware) Login(ctx context.Context, user *data.User) (d *data
 func InstrumentingMiddleware(ints, chars metrics.Counter) Middleware {
 	return func(next Authentication) Authentication {
 		return instrumentingMiddleware{
-			ints:  ints,
-			chars: chars,
-			next:  next,
+			loginCounter:  ints,
+			signupCounter: chars,
+			next:          next,
 		}
 	}
 }
 
 type instrumentingMiddleware struct {
-	ints  metrics.Counter
-	chars metrics.Counter
-	next  Authentication
+	loginCounter  metrics.Counter
+	signupCounter metrics.Counter
+	verifyCounter metrics.Counter
+	next          Authentication
 }
 
 func (mw instrumentingMiddleware) Login(ctx context.Context, user *data.User) (*data.User, error) {
 	userReq, err := mw.next.Login(ctx, user)
-	mw.chars.Add(float64(len(user.ID)))
+	mw.loginCounter.Add(float64(len(user.ID)))
 	return userReq, err
 }
 
 func (mw instrumentingMiddleware) Signup(ctx context.Context, user *data.User) error {
 	err := mw.next.Signup(ctx, user)
-	mw.chars.Add(float64(len(user.ID)))
+	mw.signupCounter.Add(float64(len(user.ID)))
 	return err
+}
+
+func (mw instrumentingMiddleware) VerifyMail(_ context.Context, verificationData *data.VerificationData) (*data.VerificationData, error) {
+	panic("implement me")
 }
 
 // InstrumentingMailMiddleware returns a service middleware that instruments
