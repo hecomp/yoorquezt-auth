@@ -4,14 +4,17 @@ package pb;
 
 // The Add service definition.
 service Auth {
-  // Sums two integers.
+  // Signup users.
   rpc Signup (SignupRequest) returns (SignupReply) {}
 
-  // Concatenates two strings
-  rpc Concat (ConcatRequest) returns (ConcatReply) {}
+  // Login users
+  rpc Login (LoginRequest) returns (LoginReply) {}
+
+  // VerifyMail users
+  rpc VerifyMail (VerifyMailRequest) returns (VerifyMailReply) {}
 }
 
-// The sum request contains two parameters.
+// The User request contains two parameters.
 message  SignupRequest {
   string ID         = 1;
   string Email      = 2;
@@ -21,7 +24,7 @@ message  SignupRequest {
   bool   IsVerified = 6;
 }
 
-// The sum response contains the result of the calculation.
+// The User response contains the result of the calculation.
 message SignupReply {
   bool Status    = 1;
   string Message = 2;
@@ -29,14 +32,35 @@ message SignupReply {
   string err     = 4;
 }
 
-// The Concat request contains two parameters.
-message ConcatRequest {
-  string a = 1;
-  string b = 2;
+// The Login request contains two parameters.
+message LoginRequest {
+  string ID         = 1;
+  string Email      = 2;
+  string Password   = 3;
+  string Username   = 4;
+  string TokenHash  = 5;
+  bool   IsVerified = 6;
 }
 
-// The Concat response contains the result of the concatenation.
-message ConcatReply {
-  string v = 1;
-  string err = 2;
+// The Login response contains the result of the concatenation.
+message LoginReply {
+  bool Status    = 1;
+  string Message = 2;
+  string data    = 3;
+  string err     = 4;
+}
+
+// The VerifyMail request contains two parameters.
+message VerifyMailRequest {
+  string Email = 1;
+  string Code  = 2;
+  int32 Type  = 3;
+}
+
+// The VerifyMail response contains the result of the concatenation.
+message VerifyMailReply {
+  bool Status    = 1;
+  string Message = 2;
+  string data    = 3;
+  string err     = 4;
 }

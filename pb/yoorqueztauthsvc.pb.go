@@ -29,7 +29,7 @@ const (
 // of the legacy proto package is being used.
 const _ = proto.ProtoPackageIsVersion4
 
-// The sum request contains two parameters.
+// The User request contains two parameters.
 type SignupRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -117,7 +117,7 @@ func (x *SignupRequest) GetIsVerified() bool {
 	return false
 }
 
-// The sum response contains the result of the calculation.
+// The User response contains the result of the calculation.
 type SignupReply struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -189,18 +189,22 @@ func (x *SignupReply) GetErr() string {
 	return ""
 }
 
-// The Concat request contains two parameters.
-type ConcatRequest struct {
+// The Login request contains two parameters.
+type LoginRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	A string `protobuf:"bytes,1,opt,name=a,proto3" json:"a,omitempty"`
-	B string `protobuf:"bytes,2,opt,name=b,proto3" json:"b,omitempty"`
+	ID         string `protobuf:"bytes,1,opt,name=ID,proto3" json:"ID,omitempty"`
+	Email      string `protobuf:"bytes,2,opt,name=Email,proto3" json:"Email,omitempty"`
+	Password   string `protobuf:"bytes,3,opt,name=Password,proto3" json:"Password,omitempty"`
+	Username   string `protobuf:"bytes,4,opt,name=Username,proto3" json:"Username,omitempty"`
+	TokenHash  string `protobuf:"bytes,5,opt,name=TokenHash,proto3" json:"TokenHash,omitempty"`
+	IsVerified bool   `protobuf:"varint,6,opt,name=IsVerified,proto3" json:"IsVerified,omitempty"`
 }
 
-func (x *ConcatRequest) Reset() {
-	*x = ConcatRequest{}
+func (x *LoginRequest) Reset() {
+	*x = LoginRequest{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_yoorqueztauthsvc_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -208,13 +212,13 @@ func (x *ConcatRequest) Reset() {
 	}
 }
 
-func (x *ConcatRequest) String() string {
+func (x *LoginRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ConcatRequest) ProtoMessage() {}
+func (*LoginRequest) ProtoMessage() {}
 
-func (x *ConcatRequest) ProtoReflect() protoreflect.Message {
+func (x *LoginRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_yoorqueztauthsvc_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -226,37 +230,67 @@ func (x *ConcatRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ConcatRequest.ProtoReflect.Descriptor instead.
-func (*ConcatRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use LoginRequest.ProtoReflect.Descriptor instead.
+func (*LoginRequest) Descriptor() ([]byte, []int) {
 	return file_yoorqueztauthsvc_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *ConcatRequest) GetA() string {
+func (x *LoginRequest) GetID() string {
 	if x != nil {
-		return x.A
+		return x.ID
 	}
 	return ""
 }
 
-func (x *ConcatRequest) GetB() string {
+func (x *LoginRequest) GetEmail() string {
 	if x != nil {
-		return x.B
+		return x.Email
 	}
 	return ""
 }
 
-// The Concat response contains the result of the concatenation.
-type ConcatReply struct {
+func (x *LoginRequest) GetPassword() string {
+	if x != nil {
+		return x.Password
+	}
+	return ""
+}
+
+func (x *LoginRequest) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *LoginRequest) GetTokenHash() string {
+	if x != nil {
+		return x.TokenHash
+	}
+	return ""
+}
+
+func (x *LoginRequest) GetIsVerified() bool {
+	if x != nil {
+		return x.IsVerified
+	}
+	return false
+}
+
+// The Login response contains the result of the concatenation.
+type LoginReply struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	V   string `protobuf:"bytes,1,opt,name=v,proto3" json:"v,omitempty"`
-	Err string `protobuf:"bytes,2,opt,name=err,proto3" json:"err,omitempty"`
+	Status  bool   `protobuf:"varint,1,opt,name=Status,proto3" json:"Status,omitempty"`
+	Message string `protobuf:"bytes,2,opt,name=Message,proto3" json:"Message,omitempty"`
+	Data    string `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
+	Err     string `protobuf:"bytes,4,opt,name=err,proto3" json:"err,omitempty"`
 }
 
-func (x *ConcatReply) Reset() {
-	*x = ConcatReply{}
+func (x *LoginReply) Reset() {
+	*x = LoginReply{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_yoorqueztauthsvc_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -264,13 +298,13 @@ func (x *ConcatReply) Reset() {
 	}
 }
 
-func (x *ConcatReply) String() string {
+func (x *LoginReply) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ConcatReply) ProtoMessage() {}
+func (*LoginReply) ProtoMessage() {}
 
-func (x *ConcatReply) ProtoReflect() protoreflect.Message {
+func (x *LoginReply) ProtoReflect() protoreflect.Message {
 	mi := &file_yoorqueztauthsvc_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -282,19 +316,169 @@ func (x *ConcatReply) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ConcatReply.ProtoReflect.Descriptor instead.
-func (*ConcatReply) Descriptor() ([]byte, []int) {
+// Deprecated: Use LoginReply.ProtoReflect.Descriptor instead.
+func (*LoginReply) Descriptor() ([]byte, []int) {
 	return file_yoorqueztauthsvc_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *ConcatReply) GetV() string {
+func (x *LoginReply) GetStatus() bool {
 	if x != nil {
-		return x.V
+		return x.Status
+	}
+	return false
+}
+
+func (x *LoginReply) GetMessage() string {
+	if x != nil {
+		return x.Message
 	}
 	return ""
 }
 
-func (x *ConcatReply) GetErr() string {
+func (x *LoginReply) GetData() string {
+	if x != nil {
+		return x.Data
+	}
+	return ""
+}
+
+func (x *LoginReply) GetErr() string {
+	if x != nil {
+		return x.Err
+	}
+	return ""
+}
+
+// The VerifyMail request contains two parameters.
+type VerifyMailRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Email string `protobuf:"bytes,1,opt,name=Email,proto3" json:"Email,omitempty"`
+	Code  string `protobuf:"bytes,2,opt,name=Code,proto3" json:"Code,omitempty"`
+	Type  int32  `protobuf:"varint,3,opt,name=Type,proto3" json:"Type,omitempty"`
+}
+
+func (x *VerifyMailRequest) Reset() {
+	*x = VerifyMailRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_yoorqueztauthsvc_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *VerifyMailRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*VerifyMailRequest) ProtoMessage() {}
+
+func (x *VerifyMailRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_yoorqueztauthsvc_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use VerifyMailRequest.ProtoReflect.Descriptor instead.
+func (*VerifyMailRequest) Descriptor() ([]byte, []int) {
+	return file_yoorqueztauthsvc_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *VerifyMailRequest) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *VerifyMailRequest) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+func (x *VerifyMailRequest) GetType() int32 {
+	if x != nil {
+		return x.Type
+	}
+	return 0
+}
+
+// The VerifyMail response contains the result of the concatenation.
+type VerifyMailReply struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Status  bool   `protobuf:"varint,1,opt,name=Status,proto3" json:"Status,omitempty"`
+	Message string `protobuf:"bytes,2,opt,name=Message,proto3" json:"Message,omitempty"`
+	Data    string `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
+	Err     string `protobuf:"bytes,4,opt,name=err,proto3" json:"err,omitempty"`
+}
+
+func (x *VerifyMailReply) Reset() {
+	*x = VerifyMailReply{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_yoorqueztauthsvc_proto_msgTypes[5]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *VerifyMailReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*VerifyMailReply) ProtoMessage() {}
+
+func (x *VerifyMailReply) ProtoReflect() protoreflect.Message {
+	mi := &file_yoorqueztauthsvc_proto_msgTypes[5]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use VerifyMailReply.ProtoReflect.Descriptor instead.
+func (*VerifyMailReply) Descriptor() ([]byte, []int) {
+	return file_yoorqueztauthsvc_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *VerifyMailReply) GetStatus() bool {
+	if x != nil {
+		return x.Status
+	}
+	return false
+}
+
+func (x *VerifyMailReply) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *VerifyMailReply) GetData() string {
+	if x != nil {
+		return x.Data
+	}
+	return ""
+}
+
+func (x *VerifyMailReply) GetErr() string {
 	if x != nil {
 		return x.Err
 	}
@@ -323,19 +507,46 @@ var file_yoorqueztauthsvc_proto_rawDesc = []byte{
 	0x28, 0x09, 0x52, 0x07, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x64,
 	0x61, 0x74, 0x61, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x12,
 	0x10, 0x0a, 0x03, 0x65, 0x72, 0x72, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x65, 0x72,
-	0x72, 0x22, 0x2b, 0x0a, 0x0d, 0x43, 0x6f, 0x6e, 0x63, 0x61, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65,
-	0x73, 0x74, 0x12, 0x0c, 0x0a, 0x01, 0x61, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x01, 0x61,
-	0x12, 0x0c, 0x0a, 0x01, 0x62, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x01, 0x62, 0x22, 0x2d,
-	0x0a, 0x0b, 0x43, 0x6f, 0x6e, 0x63, 0x61, 0x74, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x12, 0x0c, 0x0a,
-	0x01, 0x76, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x01, 0x76, 0x12, 0x10, 0x0a, 0x03, 0x65,
-	0x72, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x65, 0x72, 0x72, 0x32, 0x66, 0x0a,
-	0x04, 0x41, 0x75, 0x74, 0x68, 0x12, 0x2e, 0x0a, 0x06, 0x53, 0x69, 0x67, 0x6e, 0x75, 0x70, 0x12,
-	0x11, 0x2e, 0x70, 0x62, 0x2e, 0x53, 0x69, 0x67, 0x6e, 0x75, 0x70, 0x52, 0x65, 0x71, 0x75, 0x65,
-	0x73, 0x74, 0x1a, 0x0f, 0x2e, 0x70, 0x62, 0x2e, 0x53, 0x69, 0x67, 0x6e, 0x75, 0x70, 0x52, 0x65,
-	0x70, 0x6c, 0x79, 0x22, 0x00, 0x12, 0x2e, 0x0a, 0x06, 0x43, 0x6f, 0x6e, 0x63, 0x61, 0x74, 0x12,
-	0x11, 0x2e, 0x70, 0x62, 0x2e, 0x43, 0x6f, 0x6e, 0x63, 0x61, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65,
-	0x73, 0x74, 0x1a, 0x0f, 0x2e, 0x70, 0x62, 0x2e, 0x43, 0x6f, 0x6e, 0x63, 0x61, 0x74, 0x52, 0x65,
-	0x70, 0x6c, 0x79, 0x22, 0x00, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x72, 0x22, 0xaa, 0x01, 0x0a, 0x0c, 0x4c, 0x6f, 0x67, 0x69, 0x6e, 0x52, 0x65, 0x71, 0x75, 0x65,
+	0x73, 0x74, 0x12, 0x0e, 0x0a, 0x02, 0x49, 0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02,
+	0x49, 0x44, 0x12, 0x14, 0x0a, 0x05, 0x45, 0x6d, 0x61, 0x69, 0x6c, 0x18, 0x02, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x05, 0x45, 0x6d, 0x61, 0x69, 0x6c, 0x12, 0x1a, 0x0a, 0x08, 0x50, 0x61, 0x73, 0x73,
+	0x77, 0x6f, 0x72, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x50, 0x61, 0x73, 0x73,
+	0x77, 0x6f, 0x72, 0x64, 0x12, 0x1a, 0x0a, 0x08, 0x55, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65,
+	0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x55, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65,
+	0x12, 0x1c, 0x0a, 0x09, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x48, 0x61, 0x73, 0x68, 0x18, 0x05, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x09, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x48, 0x61, 0x73, 0x68, 0x12, 0x1e,
+	0x0a, 0x0a, 0x49, 0x73, 0x56, 0x65, 0x72, 0x69, 0x66, 0x69, 0x65, 0x64, 0x18, 0x06, 0x20, 0x01,
+	0x28, 0x08, 0x52, 0x0a, 0x49, 0x73, 0x56, 0x65, 0x72, 0x69, 0x66, 0x69, 0x65, 0x64, 0x22, 0x64,
+	0x0a, 0x0a, 0x4c, 0x6f, 0x67, 0x69, 0x6e, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x12, 0x16, 0x0a, 0x06,
+	0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x06, 0x53, 0x74,
+	0x61, 0x74, 0x75, 0x73, 0x12, 0x18, 0x0a, 0x07, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x18,
+	0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x12, 0x12,
+	0x0a, 0x04, 0x64, 0x61, 0x74, 0x61, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x64, 0x61,
+	0x74, 0x61, 0x12, 0x10, 0x0a, 0x03, 0x65, 0x72, 0x72, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x03, 0x65, 0x72, 0x72, 0x22, 0x51, 0x0a, 0x11, 0x56, 0x65, 0x72, 0x69, 0x66, 0x79, 0x4d, 0x61,
+	0x69, 0x6c, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x14, 0x0a, 0x05, 0x45, 0x6d, 0x61,
+	0x69, 0x6c, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x45, 0x6d, 0x61, 0x69, 0x6c, 0x12,
+	0x12, 0x0a, 0x04, 0x43, 0x6f, 0x64, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x43,
+	0x6f, 0x64, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x54, 0x79, 0x70, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28,
+	0x05, 0x52, 0x04, 0x54, 0x79, 0x70, 0x65, 0x22, 0x69, 0x0a, 0x0f, 0x56, 0x65, 0x72, 0x69, 0x66,
+	0x79, 0x4d, 0x61, 0x69, 0x6c, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x12, 0x16, 0x0a, 0x06, 0x53, 0x74,
+	0x61, 0x74, 0x75, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x06, 0x53, 0x74, 0x61, 0x74,
+	0x75, 0x73, 0x12, 0x18, 0x0a, 0x07, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x07, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x12, 0x12, 0x0a, 0x04,
+	0x64, 0x61, 0x74, 0x61, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61,
+	0x12, 0x10, 0x0a, 0x03, 0x65, 0x72, 0x72, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x65,
+	0x72, 0x72, 0x32, 0x9f, 0x01, 0x0a, 0x04, 0x41, 0x75, 0x74, 0x68, 0x12, 0x2e, 0x0a, 0x06, 0x53,
+	0x69, 0x67, 0x6e, 0x75, 0x70, 0x12, 0x11, 0x2e, 0x70, 0x62, 0x2e, 0x53, 0x69, 0x67, 0x6e, 0x75,
+	0x70, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x0f, 0x2e, 0x70, 0x62, 0x2e, 0x53, 0x69,
+	0x67, 0x6e, 0x75, 0x70, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x22, 0x00, 0x12, 0x2b, 0x0a, 0x05, 0x4c,
+	0x6f, 0x67, 0x69, 0x6e, 0x12, 0x10, 0x2e, 0x70, 0x62, 0x2e, 0x4c, 0x6f, 0x67, 0x69, 0x6e, 0x52,
+	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x0e, 0x2e, 0x70, 0x62, 0x2e, 0x4c, 0x6f, 0x67, 0x69,
+	0x6e, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x22, 0x00, 0x12, 0x3a, 0x0a, 0x0a, 0x56, 0x65, 0x72, 0x69,
+	0x66, 0x79, 0x4d, 0x61, 0x69, 0x6c, 0x12, 0x15, 0x2e, 0x70, 0x62, 0x2e, 0x56, 0x65, 0x72, 0x69,
+	0x66, 0x79, 0x4d, 0x61, 0x69, 0x6c, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x13, 0x2e,
+	0x70, 0x62, 0x2e, 0x56, 0x65, 0x72, 0x69, 0x66, 0x79, 0x4d, 0x61, 0x69, 0x6c, 0x52, 0x65, 0x70,
+	0x6c, 0x79, 0x22, 0x00, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -350,20 +561,24 @@ func file_yoorqueztauthsvc_proto_rawDescGZIP() []byte {
 	return file_yoorqueztauthsvc_proto_rawDescData
 }
 
-var file_yoorqueztauthsvc_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_yoorqueztauthsvc_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_yoorqueztauthsvc_proto_goTypes = []interface{}{
-	(*SignupRequest)(nil), // 0: pb.SignupRequest
-	(*SignupReply)(nil),   // 1: pb.SignupReply
-	(*ConcatRequest)(nil), // 2: pb.ConcatRequest
-	(*ConcatReply)(nil),   // 3: pb.ConcatReply
+	(*SignupRequest)(nil),     // 0: pb.SignupRequest
+	(*SignupReply)(nil),       // 1: pb.SignupReply
+	(*LoginRequest)(nil),      // 2: pb.LoginRequest
+	(*LoginReply)(nil),        // 3: pb.LoginReply
+	(*VerifyMailRequest)(nil), // 4: pb.VerifyMailRequest
+	(*VerifyMailReply)(nil),   // 5: pb.VerifyMailReply
 }
 var file_yoorqueztauthsvc_proto_depIdxs = []int32{
 	0, // 0: pb.Auth.Signup:input_type -> pb.SignupRequest
-	2, // 1: pb.Auth.Concat:input_type -> pb.ConcatRequest
-	1, // 2: pb.Auth.Signup:output_type -> pb.SignupReply
-	3, // 3: pb.Auth.Concat:output_type -> pb.ConcatReply
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
+	2, // 1: pb.Auth.Login:input_type -> pb.LoginRequest
+	4, // 2: pb.Auth.VerifyMail:input_type -> pb.VerifyMailRequest
+	1, // 3: pb.Auth.Signup:output_type -> pb.SignupReply
+	3, // 4: pb.Auth.Login:output_type -> pb.LoginReply
+	5, // 5: pb.Auth.VerifyMail:output_type -> pb.VerifyMailReply
+	3, // [3:6] is the sub-list for method output_type
+	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -400,7 +615,7 @@ func file_yoorqueztauthsvc_proto_init() {
 			}
 		}
 		file_yoorqueztauthsvc_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ConcatRequest); i {
+			switch v := v.(*LoginRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -412,7 +627,31 @@ func file_yoorqueztauthsvc_proto_init() {
 			}
 		}
 		file_yoorqueztauthsvc_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ConcatReply); i {
+			switch v := v.(*LoginReply); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_yoorqueztauthsvc_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*VerifyMailRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_yoorqueztauthsvc_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*VerifyMailReply); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -430,7 +669,7 @@ func file_yoorqueztauthsvc_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_yoorqueztauthsvc_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
@@ -456,10 +695,12 @@ const _ = grpc.SupportPackageIsVersion6
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type AuthClient interface {
-	// Sums two integers.
+	// Signup users.
 	Signup(ctx context.Context, in *SignupRequest, opts ...grpc.CallOption) (*SignupReply, error)
-	// Concatenates two strings
-	Concat(ctx context.Context, in *ConcatRequest, opts ...grpc.CallOption) (*ConcatReply, error)
+	// Login users
+	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginReply, error)
+	// VerifyMail users
+	VerifyMail(ctx context.Context, in *VerifyMailRequest, opts ...grpc.CallOption) (*VerifyMailReply, error)
 }
 
 type authClient struct {
@@ -479,9 +720,18 @@ func (c *authClient) Signup(ctx context.Context, in *SignupRequest, opts ...grpc
 	return out, nil
 }
 
-func (c *authClient) Concat(ctx context.Context, in *ConcatRequest, opts ...grpc.CallOption) (*ConcatReply, error) {
-	out := new(ConcatReply)
-	err := c.cc.Invoke(ctx, "/pb.Auth/Concat", in, out, opts...)
+func (c *authClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginReply, error) {
+	out := new(LoginReply)
+	err := c.cc.Invoke(ctx, "/pb.Auth/Login", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authClient) VerifyMail(ctx context.Context, in *VerifyMailRequest, opts ...grpc.CallOption) (*VerifyMailReply, error) {
+	out := new(VerifyMailReply)
+	err := c.cc.Invoke(ctx, "/pb.Auth/VerifyMail", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -490,10 +740,12 @@ func (c *authClient) Concat(ctx context.Context, in *ConcatRequest, opts ...grpc
 
 // AuthServer is the server API for Auth service.
 type AuthServer interface {
-	// Sums two integers.
+	// Signup users.
 	Signup(context.Context, *SignupRequest) (*SignupReply, error)
-	// Concatenates two strings
-	Concat(context.Context, *ConcatRequest) (*ConcatReply, error)
+	// Login users
+	Login(context.Context, *LoginRequest) (*LoginReply, error)
+	// VerifyMail users
+	VerifyMail(context.Context, *VerifyMailRequest) (*VerifyMailReply, error)
 }
 
 // UnimplementedAuthServer can be embedded to have forward compatible implementations.
@@ -503,8 +755,11 @@ type UnimplementedAuthServer struct {
 func (*UnimplementedAuthServer) Signup(context.Context, *SignupRequest) (*SignupReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Signup not implemented")
 }
-func (*UnimplementedAuthServer) Concat(context.Context, *ConcatRequest) (*ConcatReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Concat not implemented")
+func (*UnimplementedAuthServer) Login(context.Context, *LoginRequest) (*LoginReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
+}
+func (*UnimplementedAuthServer) VerifyMail(context.Context, *VerifyMailRequest) (*VerifyMailReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method VerifyMail not implemented")
 }
 
 func RegisterAuthServer(s *grpc.Server, srv AuthServer) {
@@ -529,20 +784,38 @@ func _Auth_Signup_Handler(srv interface{}, ctx context.Context, dec func(interfa
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Auth_Concat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ConcatRequest)
+func _Auth_Login_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LoginRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthServer).Concat(ctx, in)
+		return srv.(AuthServer).Login(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/pb.Auth/Concat",
+		FullMethod: "/pb.Auth/Login",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServer).Concat(ctx, req.(*ConcatRequest))
+		return srv.(AuthServer).Login(ctx, req.(*LoginRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Auth_VerifyMail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VerifyMailRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServer).VerifyMail(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pb.Auth/VerifyMail",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServer).VerifyMail(ctx, req.(*VerifyMailRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -556,8 +829,12 @@ var _Auth_serviceDesc = grpc.ServiceDesc{
 			Handler:    _Auth_Signup_Handler,
 		},
 		{
-			MethodName: "Concat",
-			Handler:    _Auth_Concat_Handler,
+			MethodName: "Login",
+			Handler:    _Auth_Login_Handler,
+		},
+		{
+			MethodName: "VerifyMail",
+			Handler:    _Auth_VerifyMail_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

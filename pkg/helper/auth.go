@@ -199,7 +199,7 @@ func (auth *AuthHelper) ValidateAccessToken(tokenString string) (string, error) 
 
 	claims, ok := token.Claims.(*AccessTokenCustomClaims)
 	if !ok || !token.Valid || claims.UserID == "" || claims.KeyType != "access" {
-		return "", errors.New("invalid token: authentication failed")
+		return "", errors.New("invalid token: auth failed")
 	}
 	return claims.UserID, nil
 }
@@ -237,7 +237,7 @@ func (auth *AuthHelper) ValidateRefreshToken(tokenString string) (string, string
 	auth.logger.Log("ok", ok)
 	if !ok || !token.Valid || claims.UserID == "" || claims.KeyType != "refresh" {
 		auth.logger.Log("could not extract claims from token")
-		return "", "", errors.New("invalid token: authentication failed")
+		return "", "", errors.New("invalid token: auth failed")
 	}
 	return claims.UserID, claims.CustomKey, nil
 }
