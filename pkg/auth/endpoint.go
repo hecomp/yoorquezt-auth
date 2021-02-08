@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hecomp/yoorquezt-auth/pkg/helper"
 	stdopentracing "github.com/opentracing/opentracing-go"
 	stdzipkin "github.com/openzipkin/zipkin-go"
 
@@ -16,12 +15,14 @@ import (
 	"github.com/go-kit/kit/tracing/opentracing"
 	"github.com/go-kit/kit/tracing/zipkin"
 
-	"github.com/hecomp/yoorquezt-auth/internal/data"
-	"github.com/hecomp/yoorquezt-auth/internal/utils"
-	mail2 "github.com/hecomp/yoorquezt-auth/pkg/mail"
-	"github.com/hecomp/yoorquezt-auth/pkg/signup"
 	"github.com/sony/gobreaker"
 	"golang.org/x/time/rate"
+
+	"github.com/hecomp/yoorquezt-auth/internal/data"
+	"github.com/hecomp/yoorquezt-auth/internal/utils"
+	"github.com/hecomp/yoorquezt-auth/pkg/helper"
+	mail2 "github.com/hecomp/yoorquezt-auth/pkg/mail"
+	"github.com/hecomp/yoorquezt-auth/pkg/signup"
 )
 
 // SignupResponse collects the response values for the Signup method.
@@ -42,6 +43,7 @@ type Set struct {
 	SignupEndpoint endpoint.Endpoint
 	LoginEndpoint endpoint.Endpoint
 	VerifyMailEndpoint endpoint.Endpoint
+	VerifyPasswordResetEndpoint endpoint.Endpoint
 }
 
 // Signup for grcp
@@ -66,14 +68,25 @@ func (s Set) Login(ctx context.Context, user *data.User) (*LoginResponse, error)
 }
 
 // VerifyMail for grcp
-func (s Set) VerifyMail(ctx context.Context, verificationData *data.VerificationData) (*data.VerificationData, error) {
+func (s Set) VerifyMail(ctx context.Context, verificationData *data.VerificationData) (*VerifyMailResponse, error) {
 		resp, err := s.VerifyMailEndpoint(ctx, verificationData)
 		if err != nil {
 			return nil, err
 		}
 		response := resp.(VerifyMailResponse)
-		verificationDataReq := response.Data.(data.VerificationData)
+		verificationDataReq := response.Data.(VerifyMailResponse)
 		return &verificationDataReq, response.Err
+}
+
+// VerifyPasswordReset for grcp
+func (s Set) VerifyPasswordReset(ctx context.Context, verificationData *data.VerificationData) (*VerifyPasswordResetResponse, error) {
+	resp, err := s.VerifyMailEndpoint(ctx, verificationData)
+	if err != nil {
+		return nil, err
+	}
+	response := resp.(VerifyMailResponse)
+	verificationDataReq := response.Data.(VerifyPasswordResetResponse)
+	return &verificationDataReq, response.Err
 }
 
 var (
@@ -117,15 +130,28 @@ func New(svc Service, logger log.Logger, mailService mail2.MailService, validato
 		// Note, rate is defined as a time interval between requests.
 		verifyMailEndpoint = ratelimit.NewErroringLimiter(rate.NewLimiter(rate.Limit(1), 100))(verifyMailEndpoint)
 		verifyMailEndpoint = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{}))(verifyMailEndpoint)
-		verifyMailEndpoint = opentracing.TraceServer(otTracer, "VerifyMai")(verifyMailEndpoint)
+		verifyMailEndpoint = opentracing.TraceServer(otTracer, "VerifyMail")(verifyMailEndpoint)
 		if zipkinTracer != nil {
-			verifyMailEndpoint = zipkin.TraceEndpoint(zipkinTracer, "VerifyMai")(verifyMailEndpoint)
+			verifyMailEndpoint = zipkin.TraceEndpoint(zipkinTracer, "VerifyMail")(verifyMailEndpoint)
+		}
+	}
+	var verifyPasswordResetEndpoint endpoint.Endpoint
+	{
+		verifyPasswordResetEndpoint = makeVerifyMailEndpoint(svc)
+		// VerifyPasswordReset is limited to 1 request per second with burst of 1 request.
+		// Note, rate is defined as a time interval between requests.
+		verifyPasswordResetEndpoint = ratelimit.NewErroringLimiter(rate.NewLimiter(rate.Limit(1), 100))(verifyPasswordResetEndpoint)
+		verifyPasswordResetEndpoint = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{}))(verifyPasswordResetEndpoint)
+		verifyPasswordResetEndpoint = opentracing.TraceServer(otTracer, "VerifyPasswordReset")(verifyPasswordResetEndpoint)
+		if zipkinTracer != nil {
+			verifyPasswordResetEndpoint = zipkin.TraceEndpoint(zipkinTracer, "VerifyPasswordReset")(verifyPasswordResetEndpoint)
 		}
 	}
 	return Set{
 		SignupEndpoint: signupEndpoint,
 		LoginEndpoint: loginEndpoint,
 		VerifyMailEndpoint: verifyMailEndpoint,
+		VerifyPasswordResetEndpoint: verifyPasswordResetEndpoint,
 	}
 }
 
@@ -216,6 +242,39 @@ func makeVerifyMailEndpoint(authService Service) endpoint.Endpoint {
 		}
 
 		return VerifyMailResponse{Status: resp.Status, Message: resp.Message}, nil
+	}
+}
+
+// VerifyPasswordResetResponse collects the response values for the Signup method.
+type VerifyPasswordResetResponse struct {
+	Status  bool        `json:"status"`
+	Message string   `json:",omitempty"`
+	Data    interface{} `json:"data"`
+	Err     error `json:"err,omitempty"` // should be intercepted by Failed/errorEncoder
+}
+
+// Failed implements endpoint.Failer.
+func (r VerifyPasswordResetResponse) Failed() error { return r.Err }
+
+// makeVerifyPasswordResetEndpoint constructs a VerifyMail endpoint wrapping the service.
+func makeVerifyPasswordResetEndpoint(authService Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		verificationData := request.(data.VerificationData)
+
+		authServiceHelper.Log("validating verification data")
+
+		errs := authServiceHelper.Validate(verificationData)
+		if len(errs) != 0 {
+			authServiceHelper.ErrorMsgs("validation of verification data json failed", "error", strings.Join(errs.Errors(), ","))
+			return &VerifyPasswordResetResponse{Status: false, Message: strings.Join(errs.Errors(), ",")}, nil
+		}
+
+		resp, err := authService.VerifyPasswordReset(ctx, &verificationData)
+		if err != nil {
+			return VerifyPasswordResetResponse{Status: resp.Status, Message: resp.Message, Err: resp.Err, }, nil
+		}
+
+		return VerifyPasswordResetResponse{Status: resp.Status, Message: resp.Message}, nil
 	}
 }
 

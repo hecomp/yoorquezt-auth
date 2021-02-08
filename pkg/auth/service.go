@@ -21,6 +21,7 @@ type Service interface {
 	Signup(ctx context.Context, user *data.User) (*SignupResponse, error)
 	Login(ctx context.Context, user *data.User) (*LoginResponse, error)
 	VerifyMail(_ context.Context, verificationData *data.VerificationData) (*VerifyMailResponse, error)
+	VerifyPasswordReset(_ context.Context, verificationData *data.VerificationData) (*VerifyPasswordResetResponse, error)
 }
 
 type service struct {
@@ -151,4 +152,33 @@ func (s service) VerifyMail(_ context.Context, verificationData *data.Verificati
 	s.logger.Log("user mail verification succeeded")
 
 	return &VerifyMailResponse{Status: true, Message: "Mail Verification succeeded"}, nil
+}
+
+func (s service) VerifyPasswordReset(_ context.Context, verificationData *data.VerificationData) (*VerifyPasswordResetResponse, error) {
+	s.logger.Log("verifying the confimation code")
+	verificationData.Type = data.MailConfirmation
+
+	actualVerificationData, err := s.signupRepo.GetVerificationData(context.Background(), verificationData.Email, verificationData.Type)
+	if err != nil {
+		s.logger.Log("unable to fetch verification data", "error", err)
+		if strings.Contains(err.Error(), PgNoRowsMsg) {
+			return &VerifyPasswordResetResponse{Status: false, Message: ErrUserNotFound}, nil
+		}
+		return &VerifyPasswordResetResponse{Status: false, Message: "Unable to reset password. Please try again later"}, nil
+	}
+
+	valid, err := authServiceHelper.Verify(actualVerificationData, verificationData)
+	if !valid {
+		return &VerifyPasswordResetResponse{Status: false, Message: err.Error()}, nil
+	}
+
+	respData := struct{
+		Code string
+	}{
+		Code: verificationData.Code,
+	}
+
+	s.logger.Log("password reset code verification succeeded")
+
+	return &VerifyPasswordResetResponse{Status: true, Message: "Password Reset code verification succeeded", Data: respData}, nil
 }

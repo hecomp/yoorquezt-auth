@@ -61,17 +61,17 @@ func MakeHandler(endpoints Set, otTracer stdopentracing.Tracer, zipkinTracer *st
 		encodeResponse,
 		append(options, kithttp.ServerBefore(opentracing.HTTPToContext(otTracer, "Verify", logger)))...,
 	)
-	//passwordResetHandler := kithttp.NewServer(
-	//	endpoints.VerifyMailEndpoint,
-	//	decodeHTTPVerifyMailRequest,
-	//	encodeResponse,
-	//	append(options, kithttp.ServerBefore(opentracing.HTTPToContext(otTracer, "PasswordReset", logger)))...,
-	//)
+	passwordResetHandler := kithttp.NewServer(
+		endpoints.VerifyPasswordResetEndpoint,
+		decodeHTTPVerifyPasswordResetRequest,
+		encodeResponse,
+		append(options, kithttp.ServerBefore(opentracing.HTTPToContext(otTracer, "PasswordReset", logger)))...,
+	)
 
 	mux.Handle("/signup", signupHandler)
 	mux.Handle("/login", loginHandler)
 	mux.Handle("/verify/mail", verifyMailHandler)
-	//mux.Handle("/verify/password-reset", passwordResetHandler)
+	mux.Handle("/verify/password-reset", passwordResetHandler)
 
 	mux2.Handle("/api/auth/v1/", http.StripPrefix("/api/auth/v1", mux))
 
@@ -134,6 +134,24 @@ func decodeHTTPLoginRequest(_ context.Context, r *http.Request) (interface{}, er
 // JSON-encoded signup request from the HTTP request body. Primarily useful in a
 // server.
 func decodeHTTPVerifyMailRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	var verificationData data.VerificationData
+
+	if r.Body == nil {
+		return nil, ErrBadRequest
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&verificationData)
+	if err != nil {
+		return nil, errors.New(err.Error())
+	} else {
+		return verificationData, nil
+	}
+}
+
+// decodeHTTPVerifyPasswordResetMailRequest is a transport/http.DecodeRequestFunc that decodes a
+// JSON-encoded signup request from the HTTP request body. Primarily useful in a
+// server.
+func decodeHTTPVerifyPasswordResetRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	var verificationData data.VerificationData
 
 	if r.Body == nil {
