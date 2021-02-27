@@ -162,14 +162,14 @@ func main()  {
 	}
 
 	var (
-		signup = auth.NewSignupRepository(db, logger)
+		signupRepo = auth.NewSignupRepository(db, logger)
 	)
 
 	fieldKeys := []string{"method"}
 
 	var as authentication2.Service
 	{
-		as = authentication2.NewService(signup, logger)
+		as = authentication2.NewService(signupRepo, logger)
 		as = authentication2.NewLoggingService(log.With(logger, "component", "auth"), as)
 		as = authentication2.NewInstrumentingService(
 			kitprometheus.NewCounterFrom(stdprometheus.CounterOpts{
@@ -212,8 +212,8 @@ func main()  {
 	httpLogger := log.With(logger, "component", "http")
 
 	var (
-		endpoints   = authentication2.New(as, logger, ms, validator, signup, configs, tracer, zipkinTracer)
-		httpHandler = authentication2.MakeHandler(endpoints, tracer, zipkinTracer, httpLogger)
+		endpoints   = authentication2.New(as, logger, ms, validator, signupRepo, configs, tracer, zipkinTracer)
+		httpHandler = authentication2.MakeHandler(endpoints, tracer, validator, signupRepo, zipkinTracer, httpLogger, configs)
 		grpcServer  = grpc2.NewGRPCServer(endpoints, tracer, zipkinTracer, logger)
 	)
 	//mux := http.NewServeMux()

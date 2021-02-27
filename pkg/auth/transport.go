@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/hecomp/yoorquezt-auth/internal/utils"
 	"net/http"
 
 	kitlog "github.com/go-kit/kit/log"
@@ -15,6 +16,7 @@ import (
 	stdzipkin "github.com/openzipkin/zipkin-go"
 
 	"github.com/hecomp/yoorquezt-auth/internal/data"
+	"github.com/hecomp/yoorquezt-auth/pkg/helper"
 	"github.com/hecomp/yoorquezt-auth/pkg/signup"
 )
 
@@ -24,7 +26,7 @@ var (
 	ErrBadRequest = errors.New("Bad Request")
 )
 
-func MakeHandler(endpoints Set, otTracer stdopentracing.Tracer, zipkinTracer *stdzipkin.Tracer, logger kitlog.Logger) http.Handler  {
+func MakeHandler(endpoints Set, otTracer stdopentracing.Tracer, validator *data.Validation, repo signup.Repository, zipkinTracer *stdzipkin.Tracer, logger kitlog.Logger, configs *utils.Configurations) http.Handler {
 	options := []kithttp.ServerOption{
 		kithttp.ServerErrorHandler(transport.NewLogErrorHandler(logger)),
 		kithttp.ServerErrorEncoder(encodeError),
@@ -39,39 +41,48 @@ func MakeHandler(endpoints Set, otTracer stdopentracing.Tracer, zipkinTracer *st
 		options = append(options, zipkin.HTTPServerTrace(zipkinTracer))
 	}
 
+	authHelper := helper.NewHelper(logger, nil, validator, repo, configs)
+
 	mux := http.NewServeMux()
 
 	mux2 := http.NewServeMux()
 
 	signupHandler := kithttp.NewServer(
-		endpoints.SignupEndpoint,
+		MiddlewareValidateUser(logger, authHelper)(endpoints.SignupEndpoint),
 		decodeHTTPSignupRequest,
 		encodeResponse,
-		append(options, kithttp.ServerBefore(opentracing.HTTPToContext(otTracer, "Signup", logger)))...,
+		append(options, kithttp.ServerBefore(opentracing.HTTPToContext(otTracer, "Signup", logger), kithttp.PopulateRequestContext))...,
 	)
 	loginHandler := kithttp.NewServer(
-		endpoints.LoginEndpoint,
+		MiddlewareValidateUser(logger, authHelper)(endpoints.LoginEndpoint),
 		decodeHTTPLoginRequest,
 		encodeResponse,
-		append(options, kithttp.ServerBefore(opentracing.HTTPToContext(otTracer, "Login", logger)))...,
+		append(options, kithttp.ServerBefore(opentracing.HTTPToContext(otTracer, "Login", logger), kithttp.PopulateRequestContext))...,
 	)
 	verifyMailHandler := kithttp.NewServer(
-		endpoints.VerifyMailEndpoint,
+		MiddlewareValidateVerificationData(logger, validator)(endpoints.VerifyMailEndpoint),
 		decodeHTTPVerifyMailRequest,
 		encodeResponse,
-		append(options, kithttp.ServerBefore(opentracing.HTTPToContext(otTracer, "Verify", logger)))...,
+		append(options, kithttp.ServerBefore(opentracing.HTTPToContext(otTracer, "Verify", logger), kithttp.PopulateRequestContext))...,
 	)
 	passwordResetHandler := kithttp.NewServer(
-		endpoints.VerifyPasswordResetEndpoint,
+		MiddlewareValidateVerificationData(logger, validator)(endpoints.VerifyPasswordResetEndpoint),
 		decodeHTTPVerifyPasswordResetRequest,
 		encodeResponse,
-		append(options, kithttp.ServerBefore(opentracing.HTTPToContext(otTracer, "PasswordReset", logger)))...,
+		append(options, kithttp.ServerBefore(opentracing.HTTPToContext(otTracer, "PasswordReset", logger), kithttp.PopulateRequestContext))...,
+	)
+	refreshTokenHandler := kithttp.NewServer(
+		MiddlewareValidateRefreshToken(logger, authHelper, repo)(endpoints.RefreshTokenEndpoint),
+		decodeHTTPRefreshTokenRequest,
+		encodeResponse,
+		append(options, kithttp.ServerBefore(opentracing.HTTPToContext(otTracer, "RefreshToken", logger), kithttp.PopulateRequestContext))...,
 	)
 
 	mux.Handle("/signup", signupHandler)
 	mux.Handle("/login", loginHandler)
 	mux.Handle("/verify/mail", verifyMailHandler)
 	mux.Handle("/verify/password-reset", passwordResetHandler)
+	mux.Handle("/refresh-token", refreshTokenHandler)
 
 	mux2.Handle("/api/auth/v1/", http.StripPrefix("/api/auth/v1", mux))
 
@@ -163,6 +174,24 @@ func decodeHTTPVerifyPasswordResetRequest(_ context.Context, r *http.Request) (i
 		return nil, errors.New(err.Error())
 	} else {
 		return verificationData, nil
+	}
+}
+
+// decodeHTTPRefreshTokenRequest is a transport/http.DecodeRequestFunc that decodes a
+// JSON-encoded signup request from the HTTP request body. Primarily useful in a
+// server.
+func decodeHTTPRefreshTokenRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	var user data.User
+
+	if r.Body == nil {
+		return nil, ErrBadRequest
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil {
+		return nil, errors.New(err.Error())
+	} else {
+		return user, nil
 	}
 }
 

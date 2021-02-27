@@ -3,8 +3,6 @@ package auth
 import (
 	"context"
 	"fmt"
-	"strings"
-
 	stdopentracing "github.com/opentracing/opentracing-go"
 	stdzipkin "github.com/openzipkin/zipkin-go"
 
@@ -44,6 +42,7 @@ type Set struct {
 	LoginEndpoint endpoint.Endpoint
 	VerifyMailEndpoint endpoint.Endpoint
 	VerifyPasswordResetEndpoint endpoint.Endpoint
+	RefreshTokenEndpoint endpoint.Endpoint
 }
 
 // Signup for grcp
@@ -86,6 +85,17 @@ func (s Set) VerifyPasswordReset(ctx context.Context, verificationData *data.Ver
 	}
 	response := resp.(VerifyMailResponse)
 	verificationDataReq := response.Data.(VerifyPasswordResetResponse)
+	return &verificationDataReq, response.Err
+}
+
+// RefreshToken for grcp
+func (s Set) RefreshToken(ctx context.Context, user *data.User) (*RefreshTokenResponse, error) {
+	resp, err := s.RefreshTokenEndpoint(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+	response := resp.(RefreshTokenResponse)
+	verificationDataReq := response.Data.(RefreshTokenResponse)
 	return &verificationDataReq, response.Err
 }
 
@@ -137,7 +147,7 @@ func New(svc Service, logger log.Logger, mailService mail2.MailService, validato
 	}
 	var verifyPasswordResetEndpoint endpoint.Endpoint
 	{
-		verifyPasswordResetEndpoint = makeVerifyMailEndpoint(svc)
+		verifyPasswordResetEndpoint = makeVerifyPasswordResetEndpoint(svc)
 		// VerifyPasswordReset is limited to 1 request per second with burst of 1 request.
 		// Note, rate is defined as a time interval between requests.
 		verifyPasswordResetEndpoint = ratelimit.NewErroringLimiter(rate.NewLimiter(rate.Limit(1), 100))(verifyPasswordResetEndpoint)
@@ -147,11 +157,24 @@ func New(svc Service, logger log.Logger, mailService mail2.MailService, validato
 			verifyPasswordResetEndpoint = zipkin.TraceEndpoint(zipkinTracer, "VerifyPasswordReset")(verifyPasswordResetEndpoint)
 		}
 	}
+	var refreshTokenEndpoint endpoint.Endpoint
+	{
+		refreshTokenEndpoint = makeRefreshTokenEndpoint(svc)
+		// RefreshToken is limited to 1 request per second with burst of 1 request.
+		// Note, rate is defined as a time interval between requests.
+		refreshTokenEndpoint = ratelimit.NewErroringLimiter(rate.NewLimiter(rate.Limit(1), 100))(refreshTokenEndpoint)
+		refreshTokenEndpoint = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{}))(refreshTokenEndpoint)
+		refreshTokenEndpoint = opentracing.TraceServer(otTracer, "RefreshToken")(refreshTokenEndpoint)
+		if zipkinTracer != nil {
+			refreshTokenEndpoint = zipkin.TraceEndpoint(zipkinTracer, "RefreshToken")(refreshTokenEndpoint)
+		}
+	}
 	return Set{
 		SignupEndpoint: signupEndpoint,
 		LoginEndpoint: loginEndpoint,
 		VerifyMailEndpoint: verifyMailEndpoint,
 		VerifyPasswordResetEndpoint: verifyPasswordResetEndpoint,
+		RefreshTokenEndpoint: refreshTokenEndpoint,
 	}
 }
 
@@ -159,12 +182,6 @@ func New(svc Service, logger log.Logger, mailService mail2.MailService, validato
 func makeSignupEndpoint(authService Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		user := request.(data.User)
-
-		// Validate user
-		errs := authServiceHelper.Validate(&user)
-		if len(errs) != 0 {
-			return &SignupResponse{Status: false, Message: strings.Join(errs.Errors(), ","), Err: err}, nil
-		}
 
 		resp, erro := authService.Signup(ctx, &user)
 		if erro != nil {
@@ -197,12 +214,6 @@ func makeLoginEndpoint(authService Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		reqUser := request.(data.User)
 
-		// Validate user
-		errs := authServiceHelper.Validate(&reqUser)
-		if len(errs) != 0 {
-			return &LoginResponse{Status: false, Message: strings.Join(errs.Errors(), ","), Err: err}, nil
-		}
-
 		resp, err := authService.Login(ctx, &reqUser)
 		if err != nil {
 			return LoginResponse{ Status:  resp.Status, Message: resp.Message, Data:    resp.Data, Err: err, }, nil
@@ -227,14 +238,6 @@ func (r VerifyMailResponse) Failed() error { return r.Err }
 func makeVerifyMailEndpoint(authService Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		verificationData := request.(data.VerificationData)
-
-		authServiceHelper.Log("validating verification data")
-
-		errs := authServiceHelper.Validate(verificationData)
-		if len(errs) != 0 {
-			authServiceHelper.ErrorMsgs("validation of verification data json failed", "error", strings.Join(errs.Errors(), ","))
-			return &VerifyMailResponse{Status: false, Message: strings.Join(errs.Errors(), ",")}, nil
-		}
 
 		resp, err := authService.VerifyMail(ctx, &verificationData)
 		if err != nil {
@@ -261,20 +264,43 @@ func makeVerifyPasswordResetEndpoint(authService Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		verificationData := request.(data.VerificationData)
 
-		authServiceHelper.Log("validating verification data")
-
-		errs := authServiceHelper.Validate(verificationData)
-		if len(errs) != 0 {
-			authServiceHelper.ErrorMsgs("validation of verification data json failed", "error", strings.Join(errs.Errors(), ","))
-			return &VerifyPasswordResetResponse{Status: false, Message: strings.Join(errs.Errors(), ",")}, nil
-		}
-
 		resp, err := authService.VerifyPasswordReset(ctx, &verificationData)
 		if err != nil {
 			return VerifyPasswordResetResponse{Status: resp.Status, Message: resp.Message, Err: resp.Err, }, nil
 		}
 
 		return VerifyPasswordResetResponse{Status: resp.Status, Message: resp.Message}, nil
+	}
+}
+
+// RefreshTokenResponse collects the response values for the Signup method.
+type RefreshTokenResponse struct {
+	Status  bool        `json:"status"`
+	Message string   `json:",omitempty"`
+	Data    interface{} `json:"data"`
+	Err     error `json:"err,omitempty"` // should be intercepted by Failed/errorEncoder
+}
+
+// Below data types are used for encoding and decoding b/t go types and json
+type TokenResponse struct {
+	RefreshToken string `json:"refresh_token"`
+	AccessToken  string `json:"access_token"`
+}
+
+// Failed implements endpoint.Failer.
+func (r RefreshTokenResponse) Failed() error { return r.Err }
+
+// makeRefreshTokenEndpoint constructs a VerifyMail endpoint wrapping the service.
+func makeRefreshTokenEndpoint(authService Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		user := request.(data.User)
+
+		resp, err := authService.RefreshToken(ctx, &user)
+		if err != nil {
+			return &RefreshTokenResponse{ Status: resp.Status, Message: resp.Message, Err: resp.Err}, nil
+		}
+
+		return &RefreshTokenResponse{ Status: resp.Status,Message: resp.Message, Data: resp.Data }, nil
 	}
 }
 

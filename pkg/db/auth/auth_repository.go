@@ -65,7 +65,7 @@ func (repo *signupRepository) GetUserByEmail(ctx context.Context, email string) 
 }
 
 // GetUserByID retrieves the user object having the given ID, else returns error
-func (repo *AuthRepository) GetUserByID(ctx context.Context, userID string) (*data.User, error) {
+func (repo *signupRepository) GetUserByID(ctx context.Context, userID string) (*data.User, error) {
 	repo.logger.Log("querying for user with id", userID)
 	query := "select * from users where id = $1"
 	var user data.User

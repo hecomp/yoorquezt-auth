@@ -57,21 +57,20 @@ type AccessTokenCustomClaims struct {
 type AuthHelper struct {
 	logger      log.Logger
 	mailService mail2.MailService
-	validator   *data.Validation
+	Validator   *data.Validation
 	repo        signup.Repository
 	configs     *utils.Configurations
 }
 
 func NewHelper(logger log.Logger, mailService mail2.MailService, validator *data.Validation, repository signup.Repository, configs *utils.Configurations) *AuthHelper {
 	return &AuthHelper{
-		logger: logger,
+		logger:      logger,
 		mailService: mailService,
-		validator: validator,
-		repo: repository,
-		configs: configs,
+		Validator:   validator,
+		repo:        repository,
+		configs:     configs,
 	}
 }
-
 
 func (auth *AuthHelper) StoreVerificationData(_ context.Context, verificationData *data.VerificationData) error {
 	err := auth.repo.StoreVerificationData(context.Background(), verificationData)
@@ -254,7 +253,7 @@ func (auth *AuthHelper) HashPassword(password string) (string, error) {
 }
 
 func (auth *AuthHelper) Validate(i interface{}) data.ValidationErrors {
-	err:= auth.validator.Validate(i)
+	err:= auth.Validator.Validate(i)
 	if len(err) != 0 {
 		auth.logger.Log("validation of user json failed", "error", err)
 		return err

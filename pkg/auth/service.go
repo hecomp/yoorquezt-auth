@@ -22,6 +22,7 @@ type Service interface {
 	Login(ctx context.Context, user *data.User) (*LoginResponse, error)
 	VerifyMail(_ context.Context, verificationData *data.VerificationData) (*VerifyMailResponse, error)
 	VerifyPasswordReset(_ context.Context, verificationData *data.VerificationData) (*VerifyPasswordResetResponse, error)
+	RefreshToken(_ context.Context, user *data.User) (*RefreshTokenResponse, error)
 }
 
 type service struct {
@@ -181,4 +182,17 @@ func (s service) VerifyPasswordReset(_ context.Context, verificationData *data.V
 	s.logger.Log("password reset code verification succeeded")
 
 	return &VerifyPasswordResetResponse{Status: true, Message: "Password Reset code verification succeeded", Data: respData}, nil
+}
+
+func (s service) RefreshToken(_ context.Context, user *data.User) (*RefreshTokenResponse, error) {
+	accessToken, err := authServiceHelper.GenerateAccessToken(user)
+	if err != nil {
+		s.logger.Log("unable to generate access token", "error", err)
+		return &RefreshTokenResponse{Status: false, Message: "Unable to generate access token.Please try again later", Err: err}, err
+	}
+	return &RefreshTokenResponse{
+		Status:  true,
+		Message: "Successfully generated new access token",
+		Data:    &TokenResponse{AccessToken: accessToken},
+	}, nil
 }
