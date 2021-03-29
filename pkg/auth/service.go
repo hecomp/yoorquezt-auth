@@ -23,17 +23,21 @@ type Service interface {
 	VerifyMail(_ context.Context, verificationData *data.VerificationData) (*VerifyMailResponse, error)
 	VerifyPasswordReset(_ context.Context, verificationData *data.VerificationData) (*VerifyPasswordResetResponse, error)
 	RefreshToken(_ context.Context, user *data.User) (*RefreshTokenResponse, error)
+	GeneratePassResetCode(_ context.Context, user *data.User) (*GeneratePassResetCodeResponse, error)
 }
 
+//service
 type service struct {
-	logger      log.Logger
-	signupRepo signup.Repository
+	logger log.Logger
+	repo   signup.Repository
 }
 
+//NewService
 func NewService(signup signup.Repository, logger log.Logger) Service {
-	return service{signupRepo: signup, logger: logger}
+	return service{repo: signup, logger: logger}
 }
 
+//Signup
 func (s service) Signup(ctx context.Context, user *data.User) (sig *SignupResponse, err error) {
 
 	hashedPass, err := authServiceHelper.HashPassword(user.Password)
@@ -43,7 +47,7 @@ func (s service) Signup(ctx context.Context, user *data.User) (sig *SignupRespon
 	user.Password = hashedPass
 	user.TokenHash = utils.GenerateRandomString(15)
 
-	err = s.signupRepo.Signup(context.Background(), user)
+	err = s.repo.Signup(context.Background(), user)
 	if err != nil {
 		s.logger.Log("unable to insert user to database", "error", err)
 		errMsg := err.Error()
@@ -78,8 +82,9 @@ func (s service) Signup(ctx context.Context, user *data.User) (sig *SignupRespon
 	return &SignupResponse{Status: true, Message: UserCreationSuccess}, nil
 }
 
+//Login
 func (s service) Login(_ context.Context, reqUser *data.User) (l *LoginResponse, err error) {
-	user, err := s.signupRepo.GetUserByEmail(context.Background(), reqUser.Email)
+	user, err := s.repo.GetUserByEmail(context.Background(), reqUser.Email)
 	if err != nil {
 		s.logger.Log("error fetching the user", "error", err)
 		errMsg := err.Error()
@@ -120,11 +125,12 @@ func (s service) Login(_ context.Context, reqUser *data.User) (l *LoginResponse,
 	}, nil
 }
 
+//VerifyMail
 func (s service) VerifyMail(_ context.Context, verificationData *data.VerificationData) (*VerifyMailResponse, error) {
 	s.logger.Log("verifying the confimation code")
 	verificationData.Type = data.MailConfirmation
 
-	actualVerificationData, err := s.signupRepo.GetVerificationData(context.Background(), verificationData.Email, verificationData.Type)
+	actualVerificationData, err := s.repo.GetVerificationData(context.Background(), verificationData.Email, verificationData.Type)
 	if err != nil {
 		s.logger.Log("unable to fetch verification data", "error", err)
 		if strings.Contains(err.Error(), PgNoRowsMsg) {
@@ -155,11 +161,12 @@ func (s service) VerifyMail(_ context.Context, verificationData *data.Verificati
 	return &VerifyMailResponse{Status: true, Message: "Mail Verification succeeded"}, nil
 }
 
+//VerifyPasswordReset
 func (s service) VerifyPasswordReset(_ context.Context, verificationData *data.VerificationData) (*VerifyPasswordResetResponse, error) {
 	s.logger.Log("verifying the confimation code")
 	verificationData.Type = data.MailConfirmation
 
-	actualVerificationData, err := s.signupRepo.GetVerificationData(context.Background(), verificationData.Email, verificationData.Type)
+	actualVerificationData, err := s.repo.GetVerificationData(context.Background(), verificationData.Email, verificationData.Type)
 	if err != nil {
 		s.logger.Log("unable to fetch verification data", "error", err)
 		if strings.Contains(err.Error(), PgNoRowsMsg) {
@@ -184,6 +191,7 @@ func (s service) VerifyPasswordReset(_ context.Context, verificationData *data.V
 	return &VerifyPasswordResetResponse{Status: true, Message: "Password Reset code verification succeeded", Data: respData}, nil
 }
 
+//RefreshToken
 func (s service) RefreshToken(_ context.Context, user *data.User) (*RefreshTokenResponse, error) {
 	accessToken, err := authServiceHelper.GenerateAccessToken(user)
 	if err != nil {
@@ -194,5 +202,43 @@ func (s service) RefreshToken(_ context.Context, user *data.User) (*RefreshToken
 		Status:  true,
 		Message: "Successfully generated new access token",
 		Data:    &TokenResponse{AccessToken: accessToken},
+	}, nil
+}
+
+//GeneratePassResetCode
+func (s service) GeneratePassResetCode(ctx context.Context, user *data.User) (*GeneratePassResetCodeResponse, error) {
+	user, err := s.repo.GetUserByID(context.Background(), user.ID)
+	if err != nil {
+		s.logger.Log("unable to get user to generate secret code for password reset", "error", err)
+		return &GeneratePassResetCodeResponse{Status: false, Message: "Unable to send password reset code. Please try again later"}, err
+	}
+
+	// Send verification mail
+	from := "heber.luiz.cunha@gmail.com"
+	to := []string{user.Email}
+	subject := "Password Reset for yoorquezt"
+	mailType := mail2.PassReset
+	mailData := &mail2.MailData{
+		Username: user.Username,
+		Code: 	utils.GenerateRandomString(8),
+	}
+
+	err = authServiceHelper.SenMail(from, to, subject, mailType, mailData)
+	if err != nil {
+		return &GeneratePassResetCodeResponse{Status: false, Message: ResetPassCodeFailed, Err: err}, err
+	}
+
+	verificationData := authServiceHelper.BuildVerificationDataREsetPassCode(user, mailData)
+	err = authServiceHelper.StoreVerificationData(ctx, verificationData)
+	if err != nil {
+		return &GeneratePassResetCodeResponse{Status: false, Message: ResetPassCodeFailed, Err: err}, err
+	}
+
+
+	s.logger.Log("successfully mailed password reset code")
+
+	return &GeneratePassResetCodeResponse{
+		Status:  true,
+		Message: ResetPassCodeSuccess,
 	}, nil
 }

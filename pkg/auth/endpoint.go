@@ -43,6 +43,7 @@ type Set struct {
 	VerifyMailEndpoint endpoint.Endpoint
 	VerifyPasswordResetEndpoint endpoint.Endpoint
 	RefreshTokenEndpoint endpoint.Endpoint
+	GeneratePassResetCodeEndpoint endpoint.Endpoint
 }
 
 // Signup for grcp
@@ -96,6 +97,17 @@ func (s Set) RefreshToken(ctx context.Context, user *data.User) (*RefreshTokenRe
 	}
 	response := resp.(RefreshTokenResponse)
 	verificationDataReq := response.Data.(RefreshTokenResponse)
+	return &verificationDataReq, response.Err
+}
+
+// GeneratePassResetCode for grcp
+func (s Set) GeneratePassResetCode(ctx context.Context, user *data.User) (*GeneratePassResetCodeResponse, error) {
+	resp, err := s.GeneratePassResetCodeEndpoint(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+	response := resp.(GeneratePassResetCodeResponse)
+	verificationDataReq := response.Data.(GeneratePassResetCodeResponse)
 	return &verificationDataReq, response.Err
 }
 
@@ -169,12 +181,25 @@ func New(svc Service, logger log.Logger, mailService mail2.MailService, validato
 			refreshTokenEndpoint = zipkin.TraceEndpoint(zipkinTracer, "RefreshToken")(refreshTokenEndpoint)
 		}
 	}
+	var generatePassResetCodeEndpoint endpoint.Endpoint
+	{
+		generatePassResetCodeEndpoint = makeGeneratePassResetCodeEndpoint(svc)
+		// GeneratePassResetCode is limited to 1 request per second with burst of 1 request.
+		// Note, rate is defined as a time interval between requests.
+		generatePassResetCodeEndpoint = ratelimit.NewErroringLimiter(rate.NewLimiter(rate.Limit(1), 100))(generatePassResetCodeEndpoint)
+		generatePassResetCodeEndpoint = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{}))(generatePassResetCodeEndpoint)
+		generatePassResetCodeEndpoint = opentracing.TraceServer(otTracer, "GeneratePassResetCode")(generatePassResetCodeEndpoint)
+		if zipkinTracer != nil {
+			generatePassResetCodeEndpoint = zipkin.TraceEndpoint(zipkinTracer, "GeneratePassResetCode")(generatePassResetCodeEndpoint)
+		}
+	}
 	return Set{
 		SignupEndpoint: signupEndpoint,
 		LoginEndpoint: loginEndpoint,
 		VerifyMailEndpoint: verifyMailEndpoint,
 		VerifyPasswordResetEndpoint: verifyPasswordResetEndpoint,
 		RefreshTokenEndpoint: refreshTokenEndpoint,
+		GeneratePassResetCodeEndpoint: generatePassResetCodeEndpoint,
 	}
 }
 
@@ -290,7 +315,7 @@ type TokenResponse struct {
 // Failed implements endpoint.Failer.
 func (r RefreshTokenResponse) Failed() error { return r.Err }
 
-// makeRefreshTokenEndpoint constructs a VerifyMail endpoint wrapping the service.
+// makeRefreshTokenEndpoint constructs a RefreshToken endpoint wrapping the service.
 func makeRefreshTokenEndpoint(authService Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		user := request.(data.User)
@@ -304,6 +329,31 @@ func makeRefreshTokenEndpoint(authService Service) endpoint.Endpoint {
 	}
 }
 
+// GeneratePassResetCodeResponse collects the response values for the Signup method.
+type GeneratePassResetCodeResponse struct {
+	Status  bool        `json:"status"`
+	Message string   `json:",omitempty"`
+	Data    interface{} `json:"data"`
+	Err     error `json:"err,omitempty"` // should be intercepted by Failed/errorEncoder
+}
+
+// Failed implements endpoint.Failer.
+func (r GeneratePassResetCodeResponse) Failed() error { return r.Err }
+
+// makeGeneratePassResetCodeEndpoint constructs a GeneratePassResetCode endpoint wrapping the service.
+func makeGeneratePassResetCodeEndpoint(authService Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		user := request.(data.User)
+
+		resp, err := authService.GeneratePassResetCode(ctx, &user)
+		if err != nil {
+			return &GeneratePassResetCodeResponse{ Status: resp.Status, Message: resp.Message, Err: resp.Err}, nil
+		}
+
+		return &GeneratePassResetCodeResponse{ Status: resp.Status,Message: resp.Message, Data: resp.Data }, nil
+	}
+}
+
 var ErrUserAlreadyExists = fmt.Sprintf("User already exists with the given email")
 var ErrUserNotFound = fmt.Sprintf("No user account exists with given email. Please sign in first")
 var ErrRetrieveUser = fmt.Sprintf("Unable to retrieve user from database.Please try again later")
@@ -312,6 +362,8 @@ var UserCreationFailed = fmt.Sprintf("Unable to create user.Please try again lat
 var UserCreationSuccess = fmt.Sprintf("Please verify your email account using the confirmation code send to your mail")
 var VerifyEmail = fmt.Sprintf("Please verify your mail address before login")
 var IncorrectPassword = fmt.Sprintf("Incorrect password")
+var ResetPassCodeSuccess = fmt.Sprintf("Please check your mail for password reset code")
+var ResetPassCodeFailed = fmt.Sprintf("Unable to send password reset code. Please try again later")
 
 var PgDuplicateKeyMsg = "duplicate key value violates unique constraint"
 var PgNoRowsMsg = "no rows in result set"

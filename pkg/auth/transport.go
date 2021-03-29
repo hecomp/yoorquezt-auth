@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/hecomp/yoorquezt-auth/internal/utils"
 	"net/http"
 
 	kitlog "github.com/go-kit/kit/log"
@@ -16,6 +15,7 @@ import (
 	stdzipkin "github.com/openzipkin/zipkin-go"
 
 	"github.com/hecomp/yoorquezt-auth/internal/data"
+	"github.com/hecomp/yoorquezt-auth/internal/utils"
 	"github.com/hecomp/yoorquezt-auth/pkg/helper"
 	"github.com/hecomp/yoorquezt-auth/pkg/signup"
 )
@@ -77,12 +77,19 @@ func MakeHandler(endpoints Set, otTracer stdopentracing.Tracer, validator *data.
 		encodeResponse,
 		append(options, kithttp.ServerBefore(opentracing.HTTPToContext(otTracer, "RefreshToken", logger), kithttp.PopulateRequestContext))...,
 	)
+	generatePassResetCodeHandler := kithttp.NewServer(
+		MiddlewareValidateAccessToken(logger, authHelper)(endpoints.GeneratePassResetCodeEndpoint),
+		decodeHTTPGeneratePassResetCodeRequest,
+		encodeResponse,
+		append(options, kithttp.ServerBefore(opentracing.HTTPToContext(otTracer, "GeneratePassResetCode", logger), kithttp.PopulateRequestContext))...,
+	)
 
 	mux.Handle("/signup", signupHandler)
 	mux.Handle("/login", loginHandler)
 	mux.Handle("/verify/mail", verifyMailHandler)
 	mux.Handle("/verify/password-reset", passwordResetHandler)
 	mux.Handle("/refresh-token", refreshTokenHandler)
+	mux.Handle("/get-password-reset-code", generatePassResetCodeHandler)
 
 	mux2.Handle("/api/auth/v1/", http.StripPrefix("/api/auth/v1", mux))
 
@@ -181,6 +188,24 @@ func decodeHTTPVerifyPasswordResetRequest(_ context.Context, r *http.Request) (i
 // JSON-encoded signup request from the HTTP request body. Primarily useful in a
 // server.
 func decodeHTTPRefreshTokenRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	var user data.User
+
+	if r.Body == nil {
+		return nil, ErrBadRequest
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil {
+		return nil, errors.New(err.Error())
+	} else {
+		return user, nil
+	}
+}
+
+// decodeHTTPGeneratePassResetCodeRequest is a transport/http.DecodeRequestFunc that decodes a
+// JSON-encoded signup request from the HTTP request body. Primarily useful in a
+// server.
+func decodeHTTPGeneratePassResetCodeRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	var user data.User
 
 	if r.Body == nil {

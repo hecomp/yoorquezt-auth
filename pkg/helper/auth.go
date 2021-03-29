@@ -26,6 +26,7 @@ type IAuthHelper interface {
 	Validate(i interface{}) data.ValidationErrors
 	SenMail(from string, to []string, subject string, mailType mail2.MailType, mailData *mail2.MailData) error
 	BuildVerificationData(user *data.User, mailData *mail2.MailData) *data.VerificationData
+	BuildVerificationDataREsetPassCode(user *data.User, mailData *mail2.MailData) *data.VerificationData
 	Authenticate(reqUser *data.User, user *data.User) bool
 	GenerateAccessToken(user *data.User) (string, error)
 	GenerateRefreshToken(user *data.User) (string, error)
@@ -277,6 +278,15 @@ func (auth *AuthHelper) BuildVerificationData(user *data.User, mailData *mail2.M
 		Code : mailData.Code,
 		Type : data.MailConfirmation,
 		ExpiresAt: time.Now().Add(time.Hour * time.Duration(auth.configs.MailVerifCodeExpiration)),
+	}
+}
+
+func (auth *AuthHelper) BuildVerificationDataREsetPassCode(user *data.User, mailData *mail2.MailData) *data.VerificationData {
+	return &data.VerificationData{
+		Email: user.Email,
+		Code : mailData.Code,
+		Type : data.PassReset,
+		ExpiresAt: time.Now().Add(time.Hour * time.Duration(auth.configs.PassResetCodeExpiration)),
 	}
 }
 
