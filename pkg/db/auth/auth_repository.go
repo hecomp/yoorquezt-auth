@@ -29,7 +29,7 @@ func NewSignupRepository(db *sqlx.DB, logger log.Logger)  signup.Repository{
 }
 
 // Create inserts the given user into the database
-func (r signupRepository) Signup(ctx context.Context, user *data.User) error {
+func (r *signupRepository) Signup(ctx context.Context, user *data.User) error {
 	user.ID = uuid.Must(uuid.NewRandom()).String()
 	user.CreatedAt = time.Now()
 	user.UpdatedAt = time.Now()
@@ -128,6 +128,24 @@ func (repo *signupRepository) DeleteVerificationData(ctx context.Context, email 
 // UpdatePassword updates the user password
 func (repo *AuthRepository) UpdatePassword(ctx context.Context, userID string, password string, tokenHash string) error {
 
+	query := "update users set password = $1, tokenhash = $2 where id = $3"
+	_, err := repo.db.ExecContext(ctx, query, password, tokenHash, userID)
+	return err
+}
+
+//UpdateUsername
+func (repo *signupRepository) UpdateUsername(ctx context.Context, user *data.User) error {
+	user.UpdatedAt = time.Now()
+
+	query := "update users set username = $1, updatedat = $2 where id = $3"
+	if _, err := repo.db.ExecContext(ctx, query, user.Username, user.UpdatedAt, user.ID); err != nil {
+		return err
+	}
+	return nil
+}
+
+//UpdatePassword
+func (repo *signupRepository) UpdatePassword(ctx context.Context, userID string, password string, tokenHash string) error {
 	query := "update users set password = $1, tokenhash = $2 where id = $3"
 	_, err := repo.db.ExecContext(ctx, query, password, tokenHash, userID)
 	return err

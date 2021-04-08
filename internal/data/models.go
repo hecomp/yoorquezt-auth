@@ -28,3 +28,15 @@ type VerificationData struct {
 	ExpiresAt time.Time `json:"expiresat" sql:"expiresat"`
 	Type      VerificationDataType    `json:"type" sql:"type"`
 }
+
+//UsernameUpdate
+type UsernameUpdate struct {
+	Username string `json:"username"`
+}
+
+//PasswordResetReq
+type PasswordResetReq struct {
+	Password string `json: "password"`
+	PasswordRe string `json: "password_re"`
+	Code 		string `json: "code"`
+}

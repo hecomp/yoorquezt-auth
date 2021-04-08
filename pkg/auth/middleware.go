@@ -166,3 +166,5 @@ func MiddlewareValidateVerificationData(logger log.Logger, validator *data.Valid
 		}
 	}
 }
+
+

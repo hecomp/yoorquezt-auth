@@ -83,6 +83,18 @@ func MakeHandler(endpoints Set, otTracer stdopentracing.Tracer, validator *data.
 		encodeResponse,
 		append(options, kithttp.ServerBefore(opentracing.HTTPToContext(otTracer, "GeneratePassResetCode", logger), kithttp.PopulateRequestContext))...,
 	)
+	updateUsernameHandler := kithttp.NewServer(
+		MiddlewareValidateAccessToken(logger, authHelper)(endpoints.UpdateUsernameEndpoint),
+		decodeHTTPUpdateUsernameRequest,
+		encodeResponse,
+		append(options, kithttp.ServerBefore(opentracing.HTTPToContext(otTracer, "UpdateUsername", logger), kithttp.PopulateRequestContext))...,
+	)
+	resetPasswordHandler := kithttp.NewServer(
+		MiddlewareValidateAccessToken(logger, authHelper)(endpoints.ResetPasswordEndpoint),
+		decodeHTTPResetPasswordRequest,
+		encodeResponse,
+		append(options, kithttp.ServerBefore(opentracing.HTTPToContext(otTracer, "ResetPassword", logger), kithttp.PopulateRequestContext))...,
+	)
 
 	mux.Handle("/signup", signupHandler)
 	mux.Handle("/login", loginHandler)
@@ -90,6 +102,8 @@ func MakeHandler(endpoints Set, otTracer stdopentracing.Tracer, validator *data.
 	mux.Handle("/verify/password-reset", passwordResetHandler)
 	mux.Handle("/refresh-token", refreshTokenHandler)
 	mux.Handle("/get-password-reset-code", generatePassResetCodeHandler)
+	mux.Handle("/update-username", updateUsernameHandler)
+	mux.Handle("/reset-password", resetPasswordHandler)
 
 	mux2.Handle("/api/auth/v1/", http.StripPrefix("/api/auth/v1", mux))
 
@@ -206,6 +220,42 @@ func decodeHTTPRefreshTokenRequest(_ context.Context, r *http.Request) (interfac
 // JSON-encoded signup request from the HTTP request body. Primarily useful in a
 // server.
 func decodeHTTPGeneratePassResetCodeRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	var user data.User
+
+	if r.Body == nil {
+		return nil, ErrBadRequest
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil {
+		return nil, errors.New(err.Error())
+	} else {
+		return user, nil
+	}
+}
+
+// decodeHTTPUpdateUsernameRequest is a transport/http.DecodeRequestFunc that decodes a
+// JSON-encoded signup request from the HTTP request body. Primarily useful in a
+// server.
+func decodeHTTPUpdateUsernameRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	var user data.User
+
+	if r.Body == nil {
+		return nil, ErrBadRequest
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil {
+		return nil, errors.New(err.Error())
+	} else {
+		return user, nil
+	}
+}
+
+// decodeHTTPResetPasswordRequest is a transport/http.DecodeRequestFunc that decodes a
+// JSON-encoded signup request from the HTTP request body. Primarily useful in a
+// server.
+func decodeHTTPResetPasswordRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	var user data.User
 
 	if r.Body == nil {

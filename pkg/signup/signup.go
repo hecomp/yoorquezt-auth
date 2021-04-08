@@ -14,6 +14,8 @@ type Repository interface {
 	GetUserByID(ctx context.Context, userID string) (*data.User, error)
 	GetVerificationData(ctx context.Context, email string, verificationDataType data.VerificationDataType) (*data.VerificationData, error)
 	UpdateUserVerificationStatus(ctx context.Context, email string, status bool) error
+	UpdateUsername(ctx context.Context, user *data.User) error
+	UpdatePassword(ctx context.Context, userID string, password string, tokenHash string) error
 
 
 	//GetUserByID(ctx context.Context, userID string) (*data.User, error)

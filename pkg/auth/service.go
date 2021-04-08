@@ -3,9 +3,8 @@ package auth
 import (
 	"context"
 	"errors"
-	"strings"
-
 	"github.com/go-kit/kit/log"
+	"strings"
 
 	"github.com/hecomp/yoorquezt-auth/internal/data"
 	"github.com/hecomp/yoorquezt-auth/internal/utils"
@@ -24,6 +23,8 @@ type Service interface {
 	VerifyPasswordReset(_ context.Context, verificationData *data.VerificationData) (*VerifyPasswordResetResponse, error)
 	RefreshToken(_ context.Context, user *data.User) (*RefreshTokenResponse, error)
 	GeneratePassResetCode(_ context.Context, user *data.User) (*GeneratePassResetCodeResponse, error)
+	UpdateUsername(_ context.Context, user *data.User) (*UpdateUsernameResponse, error)
+	ResetPassword(ctx context.Context, user *data.PasswordResetReq) (*ResetPasswordResponse, error)
 }
 
 //service
@@ -34,11 +35,11 @@ type service struct {
 
 //NewService
 func NewService(signup signup.Repository, logger log.Logger) Service {
-	return service{repo: signup, logger: logger}
+	return &service{repo: signup, logger: logger}
 }
 
 //Signup
-func (s service) Signup(ctx context.Context, user *data.User) (sig *SignupResponse, err error) {
+func (s *service) Signup(ctx context.Context, user *data.User) (sig *SignupResponse, err error) {
 
 	hashedPass, err := authServiceHelper.HashPassword(user.Password)
 	if err != nil {
@@ -83,7 +84,7 @@ func (s service) Signup(ctx context.Context, user *data.User) (sig *SignupRespon
 }
 
 //Login
-func (s service) Login(_ context.Context, reqUser *data.User) (l *LoginResponse, err error) {
+func (s *service) Login(_ context.Context, reqUser *data.User) (l *LoginResponse, err error) {
 	user, err := s.repo.GetUserByEmail(context.Background(), reqUser.Email)
 	if err != nil {
 		s.logger.Log("error fetching the user", "error", err)
@@ -126,7 +127,7 @@ func (s service) Login(_ context.Context, reqUser *data.User) (l *LoginResponse,
 }
 
 //VerifyMail
-func (s service) VerifyMail(_ context.Context, verificationData *data.VerificationData) (*VerifyMailResponse, error) {
+func (s *service) VerifyMail(_ context.Context, verificationData *data.VerificationData) (*VerifyMailResponse, error) {
 	s.logger.Log("verifying the confimation code")
 	verificationData.Type = data.MailConfirmation
 
@@ -162,7 +163,7 @@ func (s service) VerifyMail(_ context.Context, verificationData *data.Verificati
 }
 
 //VerifyPasswordReset
-func (s service) VerifyPasswordReset(_ context.Context, verificationData *data.VerificationData) (*VerifyPasswordResetResponse, error) {
+func (s *service) VerifyPasswordReset(_ context.Context, verificationData *data.VerificationData) (*VerifyPasswordResetResponse, error) {
 	s.logger.Log("verifying the confimation code")
 	verificationData.Type = data.MailConfirmation
 
@@ -192,7 +193,7 @@ func (s service) VerifyPasswordReset(_ context.Context, verificationData *data.V
 }
 
 //RefreshToken
-func (s service) RefreshToken(_ context.Context, user *data.User) (*RefreshTokenResponse, error) {
+func (s *service) RefreshToken(_ context.Context, user *data.User) (*RefreshTokenResponse, error) {
 	accessToken, err := authServiceHelper.GenerateAccessToken(user)
 	if err != nil {
 		s.logger.Log("unable to generate access token", "error", err)
@@ -206,7 +207,7 @@ func (s service) RefreshToken(_ context.Context, user *data.User) (*RefreshToken
 }
 
 //GeneratePassResetCode
-func (s service) GeneratePassResetCode(ctx context.Context, user *data.User) (*GeneratePassResetCodeResponse, error) {
+func (s *service) GeneratePassResetCode(ctx context.Context, user *data.User) (*GeneratePassResetCodeResponse, error) {
 	user, err := s.repo.GetUserByID(context.Background(), user.ID)
 	if err != nil {
 		s.logger.Log("unable to get user to generate secret code for password reset", "error", err)
@@ -240,5 +241,66 @@ func (s service) GeneratePassResetCode(ctx context.Context, user *data.User) (*G
 	return &GeneratePassResetCodeResponse{
 		Status:  true,
 		Message: ResetPassCodeSuccess,
+	}, nil
+}
+
+//UpdateUsername
+func (s *service) UpdateUsername(ctx context.Context, user *data.User) (*UpdateUsernameResponse, error) {
+	err := s.repo.UpdateUsername(ctx, user)
+	if err != nil {
+		s.logger.Log("unable to update username", "error", err)
+		return &UpdateUsernameResponse{Status: false, Message: UpdateUsernameFailed, Err: err}, err
+	}
+	return &UpdateUsernameResponse{Status: true, Message: UpdateUsernameSuccess, Data: &data.UsernameUpdate{Username: user.Username}}, nil
+}
+
+//ResetPassword
+func (s *service) ResetPassword(ctx context.Context, passResetReq *data.PasswordResetReq) (*ResetPasswordResponse, error) {
+	userID := ctx.Value(UserIDKey{}).(string)
+	user, err := s.repo.GetUserByID(context.Background(), userID)
+	if err != nil {
+		s.logger.Log("unable to retrieve the user from db", "error", err)
+		return &ResetPasswordResponse{Status: false, Message: ErrRetrieveUser, Err: err}, err
+	}
+
+	verificationData, err := s.repo.GetVerificationData(context.Background(), user.Email, data.PassReset)
+	if err != nil {
+		s.logger.Log("unable to retrieve the verification data from db", "error", err)
+		return &ResetPasswordResponse{Status: false, Message: ResetPasswordFailed, Err: err}, err
+	}
+
+	if verificationData.Code != passResetReq.Code {
+		// we should never be here.
+		s.logger.Log("verification code did not match even after verifying PassReset")
+		return &ResetPasswordResponse{Status: false, Message: ResetPasswordFailed, Err: err}, err
+	}
+
+	if passResetReq.Password != passResetReq.PasswordRe {
+		s.logger.Log("password and password re-enter did not match")
+		return &ResetPasswordResponse{Status: false, Message: DuplicatePassword, Err: err}, err
+	}
+
+	hashedPass, err := authServiceHelper.HashPassword(passResetReq.Password)
+	if err != nil {
+		s.logger.Log(UserCreationFailed)
+		return &ResetPasswordResponse{Status: false, Message: UserCreationFailed, Err: err}, err
+	}
+
+	tokenHash := utils.GenerateRandomString(15)
+	err = s.repo.UpdatePassword(context.Background(), userID, hashedPass, tokenHash)
+	if err != nil {
+		s.logger.Log("unable to update user password in db", "error", err)
+		return &ResetPasswordResponse{Status: false, Message: UpdatePasswordFailed, Err: err}, err
+	}
+
+	// delete the VerificationData from db
+	err = s.repo.DeleteVerificationData(context.Background(), verificationData.Email, verificationData.Type)
+	if err != nil {
+		s.logger.Log("unable to delete the verification data", "error", err)
+	}
+
+	return &ResetPasswordResponse{
+		Status:  false,
+		Message: UpadatePasswordSuccess,
 	}, nil
 }

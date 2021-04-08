@@ -44,6 +44,8 @@ type Set struct {
 	VerifyPasswordResetEndpoint endpoint.Endpoint
 	RefreshTokenEndpoint endpoint.Endpoint
 	GeneratePassResetCodeEndpoint endpoint.Endpoint
+	UpdateUsernameEndpoint endpoint.Endpoint
+	ResetPasswordEndpoint endpoint.Endpoint
 }
 
 // Signup for grcp
@@ -193,6 +195,30 @@ func New(svc Service, logger log.Logger, mailService mail2.MailService, validato
 			generatePassResetCodeEndpoint = zipkin.TraceEndpoint(zipkinTracer, "GeneratePassResetCode")(generatePassResetCodeEndpoint)
 		}
 	}
+	var updateUsernameEndpoint endpoint.Endpoint
+	{
+		updateUsernameEndpoint = makeUpdateUsernameEndpoint(svc)
+		// UpdateUsername is limited to 1 request per second with burst of 1 request.
+		// Note, rate is defined as a time interval between requests.
+		updateUsernameEndpoint = ratelimit.NewErroringLimiter(rate.NewLimiter(rate.Limit(1), 100))(updateUsernameEndpoint)
+		updateUsernameEndpoint = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{}))(updateUsernameEndpoint)
+		updateUsernameEndpoint = opentracing.TraceServer(otTracer, "UpdateUsername")(updateUsernameEndpoint)
+		if zipkinTracer != nil {
+			updateUsernameEndpoint = zipkin.TraceEndpoint(zipkinTracer, "UpdateUsername")(updateUsernameEndpoint)
+		}
+	}
+	var resetPasswordEndpoint endpoint.Endpoint
+	{
+		resetPasswordEndpoint = makeResetPasswordEndpoint(svc)
+		// ResetPassword is limited to 1 request per second with burst of 1 request.
+		// Note, rate is defined as a time interval between requests.
+		resetPasswordEndpoint = ratelimit.NewErroringLimiter(rate.NewLimiter(rate.Limit(1), 100))(resetPasswordEndpoint)
+		resetPasswordEndpoint = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{}))(resetPasswordEndpoint)
+		resetPasswordEndpoint = opentracing.TraceServer(otTracer, "ResetPassword")(resetPasswordEndpoint)
+		if zipkinTracer != nil {
+			resetPasswordEndpoint = zipkin.TraceEndpoint(zipkinTracer, "ResetPassword")(resetPasswordEndpoint)
+		}
+	}
 	return Set{
 		SignupEndpoint: signupEndpoint,
 		LoginEndpoint: loginEndpoint,
@@ -200,6 +226,8 @@ func New(svc Service, logger log.Logger, mailService mail2.MailService, validato
 		VerifyPasswordResetEndpoint: verifyPasswordResetEndpoint,
 		RefreshTokenEndpoint: refreshTokenEndpoint,
 		GeneratePassResetCodeEndpoint: generatePassResetCodeEndpoint,
+		UpdateUsernameEndpoint: updateUsernameEndpoint,
+		ResetPasswordEndpoint: resetPasswordEndpoint,
 	}
 }
 
@@ -354,6 +382,56 @@ func makeGeneratePassResetCodeEndpoint(authService Service) endpoint.Endpoint {
 	}
 }
 
+// GeneratePassResetCodeResponse collects the response values for the Signup method.
+type UpdateUsernameResponse struct {
+	Status  bool        `json:"status"`
+	Message string   `json:",omitempty"`
+	Data    interface{} `json:"data"`
+	Err     error `json:"err,omitempty"` // should be intercepted by Failed/errorEncoder
+}
+
+// Failed implements endpoint.Failer.
+func (r UpdateUsernameResponse) Failed() error { return r.Err }
+
+// makeUpdateUsernameEndpoint constructs a UpdateUsername endpoint wrapping the service.
+func makeUpdateUsernameEndpoint(authService Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		user := request.(data.User)
+
+		resp, err := authService.UpdateUsername(ctx, &user)
+		if err != nil {
+			return &UpdateUsernameResponse{ Status: resp.Status, Message: resp.Message, Err: resp.Err}, nil
+		}
+
+		return &UpdateUsernameResponse{ Status: resp.Status,Message: resp.Message, Data: resp.Data }, nil
+	}
+}
+
+// ResetPasswordResponse collects the response values for the Signup method.
+type ResetPasswordResponse struct {
+	Status  bool        `json:"status"`
+	Message string   `json:",omitempty"`
+	Data    interface{} `json:"data"`
+	Err     error `json:"err,omitempty"` // should be intercepted by Failed/errorEncoder
+}
+
+// Failed implements endpoint.Failer.
+func (r ResetPasswordResponse) Failed() error { return r.Err }
+
+// makeResetPasswordEndpoint constructs a UpdateUsername endpoint wrapping the service.
+func makeResetPasswordEndpoint(authService Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		passResetReq := request.(data.PasswordResetReq)
+
+		resp, err := authService.ResetPassword(ctx, &passResetReq)
+		if err != nil {
+			return &ResetPasswordResponse{ Status: resp.Status, Message: resp.Message, Err: resp.Err}, nil
+		}
+
+		return &ResetPasswordResponse{ Status: resp.Status,Message: resp.Message, Data: resp.Data }, nil
+	}
+}
+
 var ErrUserAlreadyExists = fmt.Sprintf("User already exists with the given email")
 var ErrUserNotFound = fmt.Sprintf("No user account exists with given email. Please sign in first")
 var ErrRetrieveUser = fmt.Sprintf("Unable to retrieve user from database.Please try again later")
@@ -364,6 +442,12 @@ var VerifyEmail = fmt.Sprintf("Please verify your mail address before login")
 var IncorrectPassword = fmt.Sprintf("Incorrect password")
 var ResetPassCodeSuccess = fmt.Sprintf("Please check your mail for password reset code")
 var ResetPassCodeFailed = fmt.Sprintf("Unable to send password reset code. Please try again later")
+var UpdateUsernameFailed = fmt.Sprintf("Unable to update username. Please try again later")
+var UpdateUsernameSuccess =fmt.Sprintf("Successfully updated username")
+var ResetPasswordFailed = fmt.Sprintf("Unable to reset password. Please try again later")
+var DuplicatePassword = fmt.Sprintf("Password and re-entered Password are not same")
+var UpdatePasswordFailed = fmt.Sprintf("Unable to update user password in db")
+var UpadatePasswordSuccess = fmt.Sprintf("Password Reset Successfully")
 
 var PgDuplicateKeyMsg = "duplicate key value violates unique constraint"
 var PgNoRowsMsg = "no rows in result set"
